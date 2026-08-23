@@ -51,6 +51,11 @@ Route::get('/run-symlink', function () {
     return 'Symlink recreated successfully!';
 });
 
+Route::get('/check-image', function () {
+    $path = storage_path('app/public/admin/2025-07-10-686ffc218769f.png');
+    return file_exists($path) ? 'File exists on the server!' : 'File does NOT exist on the server!';
+});
+
 Route::post('/subscribeToTopic', [FirebaseController::class, 'subscribeToTopic']);
 Route::get('/', 'HomeController@index')->name('home');
 Route::view('subscription/payment/view' , 'Subscription_payment_view')->name('subscription_payment_view');
