@@ -1,0 +1,214 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms and Conditions - Spot2Delivery</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Poppins', sans-serif;
+        }
+        .header-section {
+            background-color: #dc3545;
+            color: white;
+            padding: 3rem 0;
+            text-align: center;
+        }
+        .content-section {
+            max-width: 900px;
+            margin: 2rem auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-weight: 700;
+        }
+        h2 {
+            color: #dc3545;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+        p, li {
+            line-height: 1.8;
+            color: #333;
+            font-weight: 400;
+            font-size: 1rem;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        .contact-section {
+            text-align: center;
+            margin-top: 2rem;
+        }
+        .contact-section a {
+            color: #dc3545;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .contact-section a:hover {
+            text-decoration: underline;
+        }
+        footer {
+            background-color: #dc3545;
+            color: white;
+            text-align: center;
+            padding: 1rem 0;
+            margin-top: 2rem;
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="header-section">
+        <h1>Spot2Delivery Terms and Conditions</h1>
+        <p>Effective Date: May 10, 2025</p>
+    </div>
+
+    <!-- Content Section -->
+    <div class="content-section">
+        <h2>1. Introduction</h2>
+        <p>Welcome to Spot2Delivery ("we," "us," or "our"), a food delivery platform comprising three applications: User App, Restaurant App, and Delivery Man App (collectively, "the Apps"). By accessing or using the Apps, you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree with these Terms, you must not use the Apps.</p>
+        <p>These Terms apply to all users, including customers ordering food ("Users"), restaurant partners ("Restaurants"), and delivery personnel ("Delivery Persons").</p>
+
+        <h2>2. Services Provided</h2>
+        <p>Spot2Delivery provides a platform that connects Users with Restaurants and Delivery Persons to facilitate food ordering and delivery. The Apps allow:</p>
+        <ul>
+            <li>Users to browse restaurant menus, place orders, and track deliveries.</li>
+            <li>Restaurants to manage menus, process orders, and communicate with Users and Delivery Persons.</li>
+            <li>Delivery Persons to accept delivery requests, view order details, and receive payments.</li>
+        </ul>
+        <p>We act as an intermediary and are not responsible for the quality of food, delivery delays, or actions of Restaurants or Delivery Persons.</p>
+
+        <h2>3. User Responsibilities</h2>
+        <p>As a User, you agree to:</p>
+        <ul>
+            <li>Provide accurate information (e.g., name, address, phone number) when registering or placing orders.</li>
+            <li>Use the Apps for lawful purposes only.</li>
+            <li>Not misuse the Apps, such as by placing false orders or harassing Restaurants or Delivery Persons.</li>
+            <li>Pay for all orders in full, including applicable taxes and delivery fees.</li>
+            <li>Review restaurant menus for allergen information and contact Restaurants directly for dietary concerns.</li>
+        </ul>
+
+        <h2>4. Restaurant Responsibilities</h2>
+        <p>As a Restaurant, you agree to:</p>
+        <ul>
+            <li>Provide accurate menu information, including prices and availability.</li>
+            <li>Prepare orders promptly and ensure food safety and quality.</li>
+            <li>Communicate with Users and Delivery Persons regarding order status.</li>
+            <li>Comply with all applicable food safety and business regulations.</li>
+        </ul>
+
+        <h2>5. Delivery Person Responsibilities</h2>
+        <p>As a Delivery Person, you agree to:</p>
+        <ul>
+            <li>Provide accurate identification and contact information.</li>
+            <li>Deliver orders promptly and in good condition.</li>
+            <li>Maintain professionalism and courtesy when interacting with Users and Restaurants.</li>
+            <li>Comply with traffic laws and safety regulations during deliveries.</li>
+        </ul>
+
+        <h2>6. Payments and Refunds</h2>
+        <p>Users must pay for orders through the Apps using secure third-party payment gateways. All prices include applicable taxes and delivery fees, as displayed at checkout.</p>
+        <p>Refunds may be issued in the following cases:</p>
+        <ul>
+            <li>Order cancellation by the Restaurant or Spot2Delivery before preparation.</li>
+            <li>Non-delivery due to our error or the Delivery Person’s failure.</li>
+            <li>Food quality issues, subject to review with the Restaurant.</li>
+        </ul>
+        <p>Refund requests must be submitted within 48 hours of order placement. Contact us at <a href="mailto:spot2delivery@gmail.com">spot2delivery@gmail.com</a> for assistance.</p>
+
+        <h2>7. Intellectual Property</h2>
+        <p>All content on the Apps, including logos, designs, text, and software, is owned by Spot2Delivery or its licensors and is protected by copyright, trademark, and other intellectual property laws. You may not copy, modify, distribute, or reproduce any content without our prior written consent.</p>
+
+        <h2>8. Limitation of Liability</h2>
+        <p>To the fullest extent permitted by law, Spot2Delivery is not liable for:</p>
+        <ul>
+            <li>Errors, delays, or failures by Restaurants or Delivery Persons.</li>
+            <li>Food quality, safety, or allergen issues, which are the responsibility of Restaurants.</li>
+            <li>Loss or damage arising from your use of the Apps.</li>
+            <li>Indirect, incidental, or consequential damages, including loss of profits.</li>
+        </ul>
+        <p>The Apps are provided "as is" without warranties of any kind, express or implied.</p>
+
+        <h2>9. Termination</h2>
+        <p>We may suspend or terminate your access to the Apps at our discretion, including for:</p>
+        <ul>
+            <li>Violation of these Terms.</li>
+            <li>Fraudulent or abusive behavior.</li>
+            <li>Non-payment of fees (for Users, Restaurants, or Delivery Persons).</li>
+        </ul>
+        <p>You may terminate your account by contacting us. Upon termination, you must cease using the Apps, and we may delete your data, subject to legal obligations.</p>
+
+        <h2>10. Governing Law and Dispute Resolution</h2>
+        <p>These Terms are governed by the laws of [Insert Jurisdiction, e.g., Delaware, USA]. Any disputes arising from these Terms or your use of the Apps will be resolved through binding arbitration in [Insert City, e.g., Wilmington, Delaware], in accordance with the rules of the American Arbitration Association. You waive the right to participate in class action lawsuits.</p>
+
+        <h2>11. Changes to These Terms</h2>
+        <p>We may update these Terms to reflect changes in our services or legal requirements. We will notify you of material changes by posting the updated Terms on this page with a revised "Effective Date" or through in-app notifications. Continued use of the Apps after such changes constitutes your acceptance of the updated Terms.</p>
+
+        <h2>12. Contact Us</h2>
+        <div class="contact-section">
+            <p>If you have questions, concerns, or feedback regarding these Terms, please contact us at:</p>
+            <p>Email: <a href="mailto:spot2delivery@gmail.com">spot2delivery@gmail.com</a></p>
+            <p>We aim to respond to all inquiries within 30 days.</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>© 2025 Spot2Delivery. All rights reserved.</p>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+</body>
+</html>
