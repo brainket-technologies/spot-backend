@@ -56,6 +56,55 @@ Route::get('/check-image', function () {
     return file_exists($path) ? 'File exists on the server!' : 'File does NOT exist on the server!';
 });
 
+Route::get('/extract-storage', function () {
+    $zipFile = base_path('storage_public.zip');
+    if (!file_exists($zipFile)) {
+        return 'Zip file not found!';
+    }
+    $zip = new ZipArchive;
+    if ($zip->open($zipFile) === TRUE) {
+        $zip->extractTo(base_path());
+        $zip->close();
+        
+        $srcDir = base_path('public_html/spot2delivery.com/storage/app/public');
+        $destDir = storage_path('app/public');
+        
+        $moveFiles = function($src, $dest) use (&$moveFiles) {
+            if (!file_exists($dest)) {
+                mkdir($dest, 0755, true);
+            }
+            foreach (scandir($src) as $item) {
+                if ($item == '.' || $item == '..') continue;
+                $srcPath = $src . DIRECTORY_SEPARATOR . $item;
+                $destPath = $dest . DIRECTORY_SEPARATOR . $item;
+                if (is_dir($srcPath)) {
+                    $moveFiles($srcPath, $destPath);
+                } else {
+                    rename($srcPath, $destPath);
+                }
+            }
+        };
+        $moveFiles($srcDir, $destDir);
+        unlink($zipFile);
+        
+        // Clean up empty directories in extracted path
+        $cleanDir = function($dir) use (&$cleanDir) {
+            foreach (scandir($dir) as $item) {
+                if ($item == '.' || $item == '..') continue;
+                $path = $dir . DIRECTORY_SEPARATOR . $item;
+                if (is_dir($path)) {
+                    $cleanDir($path);
+                }
+            }
+            rmdir($dir);
+        };
+        $cleanDir(base_path('public_html'));
+        
+        return 'Storage files extracted and configured successfully!';
+    }
+    return 'Failed to open zip file!';
+});
+
 Route::post('/subscribeToTopic', [FirebaseController::class, 'subscribeToTopic']);
 Route::get('/', 'HomeController@index')->name('home');
 Route::view('subscription/payment/view' , 'Subscription_payment_view')->name('subscription_payment_view');
