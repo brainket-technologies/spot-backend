@@ -105,6 +105,18 @@ Route::get('/extract-storage', function () {
     return 'Failed to open zip file!';
 });
 
+Route::get('/get-error', function () {
+    $logPath = base_path('error_log');
+    if (file_exists($logPath)) {
+        return '<pre>' . htmlspecialchars(implode('', array_slice(file($logPath), -50))) . '</pre>';
+    }
+    $laravelLog = storage_path('logs/laravel.log');
+    if (file_exists($laravelLog)) {
+        return '<pre>' . htmlspecialchars(implode('', array_slice(file($laravelLog), -50))) . '</pre>';
+    }
+    return 'No error log found!';
+});
+
 Route::post('/subscribeToTopic', [FirebaseController::class, 'subscribeToTopic']);
 Route::get('/', 'HomeController@index')->name('home');
 Route::view('subscription/payment/view' , 'Subscription_payment_view')->name('subscription_payment_view');
