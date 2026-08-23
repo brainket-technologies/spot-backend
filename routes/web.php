@@ -28,6 +28,28 @@ use App\Http\Controllers\FirebaseController;
 |
 */
 
+Route::get('/run-symlink', function () {
+    $storagePath = public_path('storage');
+    if (file_exists($storagePath)) {
+        if (is_link($storagePath)) {
+            return 'Symlink already exists!';
+        }
+        // Recursively delete directory if it exists
+        $deleteDir = function($dir) use (&$deleteDir) {
+            if (!file_exists($dir)) return true;
+            if (!is_dir($dir)) return unlink($dir);
+            foreach (scandir($dir) as $item) {
+                if ($item == '.' || $item == '..') continue;
+                if (!$deleteDir($dir . DIRECTORY_SEPARATOR . $item)) return false;
+            }
+            return rmdir($dir);
+        };
+        $deleteDir($storagePath);
+    }
+    \Illuminate\Support\Facades\Artisan::call('storage:link');
+    return 'Symlink created successfully!';
+});
+
 Route::post('/subscribeToTopic', [FirebaseController::class, 'subscribeToTopic']);
 Route::get('/', 'HomeController@index')->name('home');
 Route::view('subscription/payment/view' , 'Subscription_payment_view')->name('subscription_payment_view');
