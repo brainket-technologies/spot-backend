@@ -392,6 +392,7 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             Route::put('payment-method', 'OrderController@update_payment_method');
             Route::put('offline-payment', 'OrderController@offline_payment');
             Route::put('offline-payment-update', 'OrderController@update_offline_payment_info');
+            Route::post('verify-native-payment', 'OrderController@verify_native_payment');
         });
         Route::get('getPendingReviews', 'OrderController@getPendingReviews');
 
@@ -441,6 +442,8 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
     Route::get('get-vehicles', 'ConfigController@get_vehicles');
     Route::get('get-PaymentMethods', 'ConfigController@getPaymentMethods');
     Route::get('offline_payment_method_list', 'ConfigController@offline_payment_method_list');
+
+    Route::post('razorpay-webhook', 'OrderController@razorpay_webhook');
 });
 // Code By Faizu
 //   Route::get('appHeaderBannerUri', 'ConfigController@appHeaderBannerUri');

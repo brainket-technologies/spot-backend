@@ -42,6 +42,89 @@ use MatanYadaev\EloquentSpatial\Objects\Point;
 
 class OrderController extends Controller
 {
+    public function verify_native_payment(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required',
+            'payment_method' => 'required',
+            'guest_id' => $request->user ? 'nullable' : 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)], 403);
+        }
+
+        $user_id = $request->user ? $request->user->id : $request['guest_id'];
+
+        $order = Order::where(['id' => $request['order_id'], 'user_id' => $user_id])->first();
+        if(!$order) {
+            return response()->json(['errors' => [['code' => 'order', 'message' => 'Order not found!']]], 404);
+        }
+
+        $order->payment_status = 'paid';
+        $order->payment_method = $request['payment_method'];
+        $order->transaction_reference = $request['transaction_reference'] ?? null;
+        $order->save();
+
+        return response()->json(['message' => 'Payment status updated successfully.', 'order_id' => $order->id], 200);
+    }
+
+    public function razorpay_webhook(Request $request)
+    {
+        $payload = $request->getContent();
+        $signature = $request->header('X-Razorpay-Signature');
+
+        if (!$signature) {
+            return response()->json(['error' => 'Missing signature'], 400);
+        }
+
+        try {
+            $config = \Illuminate\Support\Facades\DB::table('addon_settings')
+                ->where('key_name', 'razor_pay')
+                ->where('settings_type', 'payment_config')
+                ->first();
+        } catch (\Exception $e) {
+            $config = null;
+        }
+
+        $razor = false;
+        if (!is_null($config) && $config->mode == 'live') {
+            $razor = json_decode($config->live_values);
+        } elseif (!is_null($config) && $config->mode == 'test') {
+            $razor = json_decode($config->test_values);
+        }
+
+        if (!$razor || !isset($razor->api_secret)) {
+            return response()->json(['error' => 'Razorpay config not found'], 400);
+        }
+
+        $secret = $razor->api_secret;
+        $expectedSignature = hash_hmac('sha256', $payload, $secret);
+
+        if (!hash_equals($expectedSignature, $signature)) {
+            return response()->json(['error' => 'Invalid signature'], 403);
+        }
+
+        $data = json_decode($payload, true);
+
+        if (isset($data['event']) && $data['event'] == 'payment.captured') {
+            if (isset($data['payload']['payment']['entity']['notes']['order_id'])) {
+                $order_id = $data['payload']['payment']['entity']['notes']['order_id'];
+                $transaction_id = $data['payload']['payment']['entity']['id'];
+
+                $order = Order::find($order_id);
+                if ($order && $order->payment_status != 'paid') {
+                    $order->payment_status = 'paid';
+                    $order->payment_method = 'razor_pay';
+                    $order->transaction_reference = $transaction_id;
+                    $order->save();
+                }
+            }
+        }
+
+        return response()->json(['status' => 'success'], 200);
+    }
+
     public function track_order(Request $request)
     {
         $validator = Validator::make($request->all(), [
