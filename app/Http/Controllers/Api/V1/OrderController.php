@@ -61,10 +61,14 @@ class OrderController extends Controller
             return response()->json(['errors' => [['code' => 'order', 'message' => 'Order not found!']]], 404);
         }
 
-        $order->payment_status = 'paid';
-        $order->payment_method = $request['payment_method'];
         $order->transaction_reference = $request['transaction_reference'] ?? null;
         $order->save();
+
+        $data = (object)[
+            'attribute_id' => $order->id,
+            'payment_method' => $request['payment_method']
+        ];
+        order_place($data);
 
         return response()->json(['message' => 'Payment status updated successfully.', 'order_id' => $order->id], 200);
     }
