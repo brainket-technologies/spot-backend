@@ -151,7 +151,28 @@ class ConfigController extends Controller
         } else {
             $trial_period = data_get($settings, 'subscription_free_trial_days') > 0 ? data_get($settings, 'subscription_free_trial_days') : 0;
         }
+        
+        $razorpay_key = '';
+        try {
+            $razorpay_config = \Illuminate\Support\Facades\DB::table('addon_settings')
+                ->where('key_name', 'razor_pay')
+                ->where('settings_type', 'payment_config')
+                ->first();
+            if ($razorpay_config) {
+                if ($razorpay_config->mode == 'live') {
+                    $values = json_decode($razorpay_config->live_values, true);
+                    $razorpay_key = $values['api_key'] ?? '';
+                } else {
+                    $values = json_decode($razorpay_config->test_values, true);
+                    $razorpay_key = $values['api_key'] ?? '';
+                }
+            }
+        } catch (\Exception $e) {
+            $razorpay_key = '';
+        }
+        
         return response()->json([
+            'razorpayKey' => $razorpay_key,
             'business_name' => $settings['business_name'],
             'logo' => $settings['logo'],
             'logo_full_url' => Helpers::get_full_url('business',$settings['logo'],$data['logo_storage']??'public'),
