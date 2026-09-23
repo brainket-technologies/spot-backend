@@ -1490,42 +1490,18 @@ class OrderController extends Controller
             $wallet_status = BusinessSetting::where('key', 'wallet_status')->first()?->value;
             $refund_to_wallet = BusinessSetting::where('key', 'wallet_add_refund')->first()?->value;
     
-            if ($order?->payments && $order?->is_guest == 0) {
-                $refund_amount = Order::where('payment_status', 'paid')->sum('order_amount');  // changes my here it's working 
-                // $refund_amount = $order->payments()->where('payment_status', 'paid')->sum('amount');
-                // $refund_amount = '100';
+            if ($order?->payment_status == 'paid' && $order?->is_guest == 0) {
+                // BUG FIX: Using $order->order_amount instead of summing ALL paid orders in the database
+                $refund_amount = $order->order_amount;
     
                 if ($wallet_status && $refund_to_wallet && $refund_amount > 0) {
-                    // Check for existing wallet transaction
-                    $wallet_transaction = DB::table('wallet_transactions')
-                        ->where('reference', $order->id)
-                        ->where(function ($query) {
-                            $query->where('debit', '0.00')
-                                ->orWhere('debit', 0)
-                                ->orWhere('debit', '>', 0);
-                        })
-                        ->first();
-                        
-                        
-                    if ($wallet_transaction) {
-                        // Get user and current wallet balance
-                        $user = DB::table('users')->where('id', $user_id)->first();
-                        $current_wallet_balance = $user->wallet_balance ?? 0;
-                        $amount_to_credit = $wallet_transaction->debit;
-                        $new_wallet_balance = $current_wallet_balance;
-    
-                        // Update user's wallet balance
-                        DB::table('users')
-                            ->where('id', $user_id)
-                            ->update(['wallet_balance' => $new_wallet_balance]);
-                        // Use CustomerLogic::create_wallet_transaction to create refund transaction
-                        CustomerLogic::create_wallet_transaction(
-                            user_id: $user_id,
-                            amount: $amount_to_credit,
-                            transaction_type: 'order_refund',
-                            referance: $order->id
-                        );
-                        return response()->json(['message' => translate('messages.order_canceled_successfully_and_refunded_to_wallet')], 200);
+                    \App\CentralLogics\CustomerLogic::create_wallet_transaction(
+                        user_id: $user_id,
+                        amount: $refund_amount,
+                        transaction_type: 'order_refund',
+                        referance: $order->id
+                    );
+                    return response()->json(['message' => translate('messages.order_canceled_successfully_and_refunded_to_wallet')], 200);
                     } else {
                         return response()->json(['message' => translate('messages.order_canceled_successfully_and_for_refund_amount_contact_admin')], 200);
                     }

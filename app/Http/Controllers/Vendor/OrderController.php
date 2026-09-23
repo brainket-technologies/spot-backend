@@ -326,6 +326,23 @@ class OrderController extends Controller
                     }
             }
             Helpers::decreaseSellCount(order_details:$order->details);
+            
+            // Automatic Refund Logic for paid orders
+            $wallet_status = \App\Models\BusinessSetting::where('key', 'wallet_status')->first()?->value;
+            $refund_to_wallet = \App\Models\BusinessSetting::where('key', 'wallet_add_refund')->first()?->value;
+
+            if ($order?->payment_status == 'paid' && $order?->is_guest == 0) {
+                $refund_amount = $order->order_amount;
+
+                if ($wallet_status && $refund_to_wallet && $refund_amount > 0) {
+                    \App\CentralLogics\CustomerLogic::create_wallet_transaction(
+                        user_id: $order->user_id,
+                        amount: $refund_amount,
+                        transaction_type: 'order_refund',
+                        referance: $order->id
+                    );
+                }
+            }
 
         }
         if($request->order_status == 'delivered')
