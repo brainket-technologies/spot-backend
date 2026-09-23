@@ -798,9 +798,9 @@ class OrderController extends Controller
         //     $order_status ='confirmed';
         // }
         
-        if(($request->partial_payment && $request->payment_method != 'offline_payment')){
-            $order_status ='confirmed';
-        }
+        // if(($request->partial_payment && $request->payment_method != 'offline_payment')){
+        //     $order_status ='confirmed'; // old: partial payment auto-confirms
+        // }
 
         $order->distance = $request->distance ?? 0;
         $order->user_id = $request->user ? $request->user->id : $request['guest_id'];

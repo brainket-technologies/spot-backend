@@ -30,8 +30,9 @@ class WalletPaymentController extends Controller
                 $order->transaction_reference = $transaction->transaction_id;
                 $order->payment_method = 'wallet';
                 $order->payment_status = 'paid';
-                $order->order_status = 'confirmed';
-                $order->confirmed = now();
+                // $order->order_status = 'confirmed'; // old: auto-confirm on wallet payment
+                $order->order_status = 'pending'; // new: restaurant approval required
+                // $order->confirmed = now(); // commented: not confirmed yet, pending restaurant approval
                 $order?->save();
                 Helpers::send_order_notification($order);
             } catch (\Exception $e) {

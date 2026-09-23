@@ -53,13 +53,14 @@ if (! function_exists('order_place')) {
     function order_place($data)
     {
         $order = Order::find($data->attribute_id);
-        $order->order_status = 'confirmed';
+        // $order->order_status = 'confirmed'; // old: auto-confirm on payment
+        $order->order_status = 'pending'; // new: restaurant approval required even after online payment
         if ($order->payment_method != 'partial_payment') {
             $order->payment_method = $data->payment_method;
         }
         // $order->transaction_reference=$data->transaction_ref;
         $order->payment_status = 'paid';
-        $order->confirmed = now();
+        // $order->confirmed = now(); // commented: not confirmed yet, pending restaurant approval
         $order->save();
 
         if ($order->restaurant->restaurant_model == 'subscription' && isset($order->restaurant->restaurant_sub)) {
