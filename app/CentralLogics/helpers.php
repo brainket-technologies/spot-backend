@@ -1253,16 +1253,6 @@ class Helpers
                     "click_action" => $web_push_link?(string)$web_push_link:'',
                     "sound" => "notification.wav",
                 ],
-                "notification" => [
-                    'title' => (string)$data['title'],
-                    'body' => (string)$data['description'],
-                    "image" => (string)$data['image'],
-                ],
-                "android" => [
-                    "notification" => [
-                        "channelId" => 'stackfood',
-                    ]
-                ],
                 "apns" => [
                     "payload" => [
                         "aps" => [
@@ -1305,16 +1295,6 @@ class Helpers
                         "click_action" => $web_push_link?(string)$web_push_link:'',
                         "sound" => "notification.wav",
                     ],
-                    "notification" => [
-                        'title' => (string)$data['title'],
-                        'body' => (string)$data['description'],
-                        "image" => (string)$data['image'],
-                    ],
-                    "android" => [
-                        "notification" => [
-                            "channelId" => 'stackfood',
-                        ]
-                    ],
                     "apns" => [
                         "payload" => [
                             "aps" => [
@@ -1337,16 +1317,6 @@ class Helpers
                         "body_loc_key" => (string)$type,
                         "click_action" => $web_push_link?(string)$web_push_link:'',
                         "sound" => "notification.wav",
-                    ],
-                    "notification" => [
-                        'title' => (string)$data['title'],
-                        'body' => (string)$data['description'],
-                        "image" => (string)$data['image'],
-                    ],
-                    "android" => [
-                        "notification" => [
-                            "channelId" => 'stackfood',
-                        ]
                     ],
                     "apns" => [
                         "payload" => [
