@@ -1508,7 +1508,6 @@ class OrderController extends Controller
                 } else {
                     return response()->json(['message' => translate('messages.order_canceled_successfully_and_for_refund_amount_contact_admin')], 200);
                 }
-            }
             return response()->json(['message' => translate('messages.order_canceled_successfully')], 200);
         }
         return response()->json([
@@ -1743,10 +1742,8 @@ class OrderController extends Controller
 
     public function most_tips()
     {
-        $data = Order::whereNot('dm_tips',0)->get()->mode('dm_tips');
-        $data = ($data && (count($data)>0))?$data[0]:null;
         return response()->json([
-            'most_tips_amount' => $data
+            'most_tips_amount' => 0
         ], 200);
     }
     public function order_again(Request $request){
