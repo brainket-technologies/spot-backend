@@ -1606,7 +1606,7 @@ class Helpers
             $status = ($order->order_status == 'delivered' && $order->delivery_man) ? 'delivery_boy_delivered' : $order->order_status;
 
 
-            if( $order->checked != 1 && ( $order->subscription_id == null &&  (in_array($order->payment_method, ['cash_on_delivery', 'offline_payment'])  && $order->order_status == 'pending' )||(!in_array($order->payment_method, ['cash_on_delivery', 'offline_payment']) && $order->order_status == 'confirmed' )) ){
+            if( $order->checked != 1 && ( $order->subscription_id == null && $order->order_status == 'pending' ) ){
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.new_order_push_description'),
@@ -1690,7 +1690,7 @@ class Helpers
                 ]);
             }
 
-            if (in_array($order->order_type,['dine_in' ,'delivery']) && !$order->scheduled && $order->order_status == 'pending' && $order->payment_method == 'cash_on_delivery' && config('order_confirmation_model') == 'deliveryman') {
+            if (in_array($order->order_type,['dine_in' ,'delivery']) && !$order->scheduled && $order->order_status == 'pending' && config('order_confirmation_model') == 'deliveryman') {
 
                 if (($order->restaurant->restaurant_model == 'commission' && $order->restaurant->self_delivery_system)
                 || ($order->restaurant->restaurant_model == 'subscription' &&  isset($order->restaurant->restaurant_sub) && $order->restaurant->restaurant_sub->self_delivery)
@@ -1736,7 +1736,7 @@ class Helpers
                 }
             }
 
-            if (  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && $order->order_type == 'delivery' && !$order->scheduled && $order->order_status == 'pending' && $order->payment_method == 'cash_on_delivery' && config('order_confirmation_model') == 'restaurant') {
+            if (  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && $order->order_type == 'delivery' && !$order->scheduled && $order->order_status == 'pending' && config('order_confirmation_model') == 'restaurant') {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.new_order_push_description'),
@@ -1757,7 +1757,7 @@ class Helpers
                 self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant_id}_message", 'new_order', $web_push_link);
             }
 
-            if (  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && !$order->scheduled && ((in_array($order->order_type,['dine_in' ,'take_away']) && $order->order_status == 'pending') || ($order->payment_method != 'cash_on_delivery' && $order->order_status == 'confirmed'))) {
+            if (  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && !$order->scheduled && $order->order_status == 'pending') {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.new_order_push_description'),
