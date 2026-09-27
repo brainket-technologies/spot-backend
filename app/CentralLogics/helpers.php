@@ -1171,7 +1171,7 @@ class Helpers
                 'Content-Type' => 'application/json',
             ];
             try {
-                Http::withHeaders($headers)->post($url, $data);
+                Http::timeout(5)->withHeaders($headers)->post($url, $data);
             }catch (\Exception $exception){
                 info($exception->getMessage());
                 return false;
@@ -1182,6 +1182,11 @@ class Helpers
 
     public static function getAccessToken($key)
     {
+        $cacheKey = 'fcm_access_token_' . md5($key['client_email']);
+        if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            return \Illuminate\Support\Facades\Cache::get($cacheKey);
+        }
+
         $jwtToken = [
             'iss' => $key['client_email'],
             'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
@@ -1199,7 +1204,12 @@ class Helpers
             'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
             'assertion' => $jwt,
         ]);
-        return $response->json('access_token');
+        
+        $token = $response->json('access_token');
+        if ($token) {
+            \Illuminate\Support\Facades\Cache::put($cacheKey, $token, 3000);
+        }
+        return $token;
     }
 
     public static function send_push_notif_to_device($fcm_token, $data, $web_push_link = null)
