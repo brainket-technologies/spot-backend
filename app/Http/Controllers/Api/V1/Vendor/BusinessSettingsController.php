@@ -65,7 +65,7 @@ class BusinessSettingsController extends Controller
 
         $data_trans = json_decode($request->translations, true);
 
-        if (count($data_trans) < 1) {
+        if (count($data_trans ?? []) < 1) {
             $validator->getMessageBag()->add('translations', translate('messages.Name and address in english is required'));
         }
 
