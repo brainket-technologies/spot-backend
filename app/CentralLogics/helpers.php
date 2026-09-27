@@ -1278,6 +1278,12 @@ class Helpers
                     "click_action" => $web_push_link?(string)$web_push_link:'',
                     "sound" => "notification.wav",
                 ],
+                "notification" => [
+                    "title" => (string)$data['title'],
+                    "body" => (string)$data['description'],
+                    "android_channel_id" => "stackfood_new_order_4",
+                    "sound" => "notification.wav",
+                ],
                 "android" => [
                     "priority" => "high",
                 ],
@@ -1322,6 +1328,12 @@ class Helpers
                         "title_loc_key" => (string)$data['order_id'],
                         "body_loc_key" => (string)$type,
                         "click_action" => $web_push_link?(string)$web_push_link:'',
+                        "sound" => "notification.wav",
+                    ],
+                    "notification" => [
+                        "title" => (string)$data['title'],
+                        "body" => (string)$data['description'],
+                        "android_channel_id" => "stackfood_new_order_4",
                         "sound" => "notification.wav",
                     ],
                     "android" => [
