@@ -781,7 +781,7 @@ class DeliverymanController extends Controller
                     'type' => 'order_status',
                     'order_status' => $order->order_status,
                 ];
-                Helpers::send_push_notif_to_device($order->customer->cm_firebase_token, $data);
+                Helpers::send_push_notif_to_device($fcm_token, $data);
                 DB::table('user_notifications')->insert([
                     'data' => json_encode($data),
                     'user_id' => $order->user_id,

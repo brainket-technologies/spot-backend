@@ -1245,6 +1245,7 @@ class Helpers
                     "image" => (string)$data['image'],
                     "order_id" => (string)$data['order_id'],
                     "type" => (string)$data['type'],
+                    "order_status" => isset($data['order_status']) ? (string)$data['order_status'] : '',
                     "conversation_id" => (string)$conversation_id,
                     "advertisement_id" => (string)$advertisement_id,
                     "data_id" => (string)$data_id,
@@ -1289,6 +1290,7 @@ class Helpers
                         "order_id" => (string)$data['order_id'],
                         "order_type" => (string)$order_type,
                         "type" => (string)$type,
+                        "order_status" => isset($data['order_status']) ? (string)$data['order_status'] : '',
                         "image" => (string)$data['image'],
                         "title_loc_key" => (string)$data['order_id'],
                         "body_loc_key" => (string)$type,
@@ -1313,6 +1315,7 @@ class Helpers
                         "body" => (string)$data['description'],
                         "order_id" => (string)$data['order_id'],
                         "type" => (string)$type,
+                        "order_status" => isset($data['order_status']) ? (string)$data['order_status'] : '',
                         "image" => (string)$data['image'],
                         "body_loc_key" => (string)$type,
                         "click_action" => $web_push_link?(string)$web_push_link:'',
@@ -1588,6 +1591,9 @@ class Helpers
             }
             return $data['message'];
         }else{
+            if ($status == 'delivery_boy_delivered') {
+                return "Your order has been delivered successfully.";
+            }
             return false;
         }
     }
