@@ -1171,7 +1171,12 @@ class Helpers
                 'Content-Type' => 'application/json',
             ];
             try {
-                Http::timeout(5)->withHeaders($headers)->post($url, $data);
+                // Use CURLOPT_IPRESOLVE => 1 (CURL_IPRESOLVE_V4) to prevent IPv6 timeout delays on cPanel servers
+                Http::timeout(5)->withOptions([
+                    'curl' => [
+                        CURLOPT_IPRESOLVE => 1
+                    ]
+                ])->withHeaders($headers)->post($url, $data);
             }catch (\Exception $exception){
                 info($exception->getMessage());
                 return false;
@@ -1200,12 +1205,21 @@ class Helpers
         openssl_sign($unsignedJwt, $signature, $key['private_key'], OPENSSL_ALGO_SHA256);
         $jwt = $unsignedJwt . '.' . base64_encode($signature);
 
-        $response = Http::asForm()->post('https://oauth2.googleapis.com/token', [
-            'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            'assertion' => $jwt,
-        ]);
-        
-        $token = $response->json('access_token');
+        try {
+            $response = Http::timeout(5)->withOptions([
+                'curl' => [
+                    CURLOPT_IPRESOLVE => 1
+                ]
+            ])->asForm()->post('https://oauth2.googleapis.com/token', [
+                'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                'assertion' => $jwt,
+            ]);
+            $token = $response->json('access_token');
+        } catch (\Exception $exception) {
+            info($exception->getMessage());
+            $token = null;
+        }
+
         if ($token) {
             \Illuminate\Support\Facades\Cache::put($cacheKey, $token, 3000);
         }
