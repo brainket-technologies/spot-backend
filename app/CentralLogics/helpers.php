@@ -1299,11 +1299,13 @@ class Helpers
                 "notification" => [
                     "title" => (string)$data['title'],
                     "body" => (string)$data['description'],
-                    "android_channel_id" => $android_channel_id,
-                    "sound" => $sound,
                 ],
                 "android" => [
                     "priority" => "high",
+                    "notification" => [
+                        "channel_id" => $android_channel_id,
+                        "sound" => $sound,
+                    ]
                 ],
                 "apns" => [
                     "payload" => [
@@ -1337,7 +1339,7 @@ class Helpers
         $android_channel_id = 'stackfood';
         $sound = 'notification.wav';
         
-        if ($type == 'new_order' || $title == 'New order placed' || $type == 'New order placed') {
+        if ($type == 'new_order' || $type == 'order_request' || $title == 'New order placed' || $type == 'New order placed') {
             $android_channel_id = 'stackfood_new_order_4';
             $sound = 'order_request.mp3';
         } elseif ($type == 'order_status' && $order_status == 'handover') {
@@ -1368,11 +1370,13 @@ class Helpers
                     "notification" => [
                         "title" => (string)$data['title'],
                         "body" => (string)$data['description'],
-                        "android_channel_id" => $android_channel_id,
-                        "sound" => $sound,
                     ],
                     "android" => [
                         "priority" => "high",
+                        "notification" => [
+                            "channel_id" => $android_channel_id,
+                            "sound" => $sound,
+                        ]
                     ],
                     "apns" => [
                         "payload" => [
@@ -1398,13 +1402,21 @@ class Helpers
                         "click_action" => $web_push_link?(string)$web_push_link:'',
                         "sound" => "notification.wav",
                     ],
+                    "notification" => [
+                        "title" => (string)$data['title'],
+                        "body" => (string)$data['description'],
+                    ],
                     "android" => [
                         "priority" => "high",
+                        "notification" => [
+                            "channel_id" => $android_channel_id,
+                            "sound" => $sound,
+                        ]
                     ],
                     "apns" => [
                         "payload" => [
                             "aps" => [
-                                "sound" => "notification.wav"
+                                "sound" => $sound
                             ]
                         ]
                     ]
