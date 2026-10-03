@@ -1267,7 +1267,7 @@ class Helpers
         $android_channel_id = 'stackfood';
         $sound = 'notification.wav';
         
-        if ($type == 'new_order' || $title == 'New order placed' || $type == 'New order placed') {
+        if ($type == 'new_order' || $type == 'order_request' || $type == 'assign' || $title == 'New order placed' || $type == 'New order placed') {
             $android_channel_id = 'stackfood_new_order_4';
             $sound = 'order_request.mp3';
         } elseif ($type == 'order_status' && $order_status == 'handover') {
@@ -1277,6 +1277,8 @@ class Helpers
             $android_channel_id = 'stackfood_delivered_1';
             $sound = 'order_delivered.wav';
         }
+
+        $android_sound = str_replace(['.mp3', '.wav'], '', $sound);
 
         $postData = [
             'message' => [
@@ -1294,7 +1296,7 @@ class Helpers
                     "sender_type" => (string)$sender_type,
                     "order_type" => (string)$order_type,
                     "click_action" => $web_push_link?(string)$web_push_link:'',
-                    "sound" => $sound,
+                    "sound" => $android_sound,
                 ],
                 "notification" => [
                     "title" => (string)$data['title'],
@@ -1304,7 +1306,8 @@ class Helpers
                     "priority" => "high",
                     "notification" => [
                         "channel_id" => $android_channel_id,
-                        "sound" => $sound,
+                        "sound" => $android_sound,
+                        "click_action" => "FLUTTER_NOTIFICATION_CLICK",
                     ]
                 ],
                 "apns" => [
@@ -1339,7 +1342,7 @@ class Helpers
         $android_channel_id = 'stackfood';
         $sound = 'notification.wav';
         
-        if ($type == 'new_order' || $type == 'order_request' || $title == 'New order placed' || $type == 'New order placed') {
+        if ($type == 'new_order' || $type == 'order_request' || $type == 'assign' || $title == 'New order placed' || $type == 'New order placed') {
             $android_channel_id = 'stackfood_new_order_4';
             $sound = 'order_request.mp3';
         } elseif ($type == 'order_status' && $order_status == 'handover') {
@@ -1349,6 +1352,8 @@ class Helpers
             $android_channel_id = 'stackfood_delivered_1';
             $sound = 'order_delivered.wav';
         }
+
+        $android_sound = str_replace(['.mp3', '.wav'], '', $sound);
 
         if (isset($data['order_id'])) {
             $postData = [
@@ -1365,7 +1370,7 @@ class Helpers
                         "title_loc_key" => (string)$data['order_id'],
                         "body_loc_key" => (string)$type,
                         "click_action" => $web_push_link?(string)$web_push_link:'',
-                        "sound" => $sound,
+                        "sound" => $android_sound,
                     ],
                     "notification" => [
                         "title" => (string)$data['title'],
@@ -1375,7 +1380,8 @@ class Helpers
                         "priority" => "high",
                         "notification" => [
                             "channel_id" => $android_channel_id,
-                            "sound" => $sound,
+                            "sound" => $android_sound,
+                            "click_action" => "FLUTTER_NOTIFICATION_CLICK",
                         ]
                     ],
                     "apns" => [
@@ -1400,7 +1406,7 @@ class Helpers
                         "image" => (string)$data['image'],
                         "body_loc_key" => (string)$type,
                         "click_action" => $web_push_link?(string)$web_push_link:'',
-                        "sound" => "notification.wav",
+                        "sound" => $android_sound,
                     ],
                     "notification" => [
                         "title" => (string)$data['title'],
@@ -1410,7 +1416,8 @@ class Helpers
                         "priority" => "high",
                         "notification" => [
                             "channel_id" => $android_channel_id,
-                            "sound" => $sound,
+                            "sound" => $android_sound,
+                            "click_action" => "FLUTTER_NOTIFICATION_CLICK",
                         ]
                     ],
                     "apns" => [
@@ -1834,7 +1841,7 @@ class Helpers
                 }
             }
 
-            if (  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && $order->order_type == 'delivery' && !$order->scheduled && $order->order_status == 'pending' && config('order_confirmation_model') == 'restaurant') {
+            elseif (  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && $order->order_type == 'delivery' && !$order->scheduled && $order->order_status == 'pending' && config('order_confirmation_model') == 'restaurant') {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.new_order_push_description'),
@@ -1855,7 +1862,7 @@ class Helpers
                 self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant_id}_message", 'new_order', $web_push_link);
             }
 
-            if (  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && !$order->scheduled && $order->order_status == 'pending') {
+            elseif (  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && !$order->scheduled && $order->order_status == 'pending') {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.new_order_push_description'),
