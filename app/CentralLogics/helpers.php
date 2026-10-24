@@ -1795,6 +1795,9 @@ class Helpers
                 ]);
             }
 
+            // Ensures restaurant gets the initial "new order" push exactly once (no duplicates, no misses)
+            $restaurant_new_order_notified = false;
+
             if (in_array($order->order_type,['dine_in' ,'delivery']) && !$order->scheduled && $order->order_status == 'pending' && config('order_confirmation_model') == 'deliveryman') {
 
                 if (($order->restaurant->restaurant_model == 'commission' && $order->restaurant->self_delivery_system)
@@ -1820,6 +1823,7 @@ class Helpers
                         ]);
                         $web_push_link = url('/').'/restaurant-panel/order/list/all';
                         self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant_id}_message", 'new_order', $web_push_link);
+                        $restaurant_new_order_notified = true;
                     }
 
 
@@ -1841,7 +1845,7 @@ class Helpers
                 }
             }
 
-            elseif (  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && $order->order_type == 'delivery' && !$order->scheduled && $order->order_status == 'pending' && config('order_confirmation_model') == 'restaurant') {
+            if ( !$restaurant_new_order_notified && $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && $order->order_type == 'delivery' && !$order->scheduled && $order->order_status == 'pending' && config('order_confirmation_model') == 'restaurant') {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.new_order_push_description'),
@@ -1860,9 +1864,10 @@ class Helpers
                 ]);
                 $web_push_link = url('/').'/restaurant-panel/order/list/all';
                 self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant_id}_message", 'new_order', $web_push_link);
+                $restaurant_new_order_notified = true;
             }
 
-            elseif (  $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && !$order->scheduled && $order->order_status == 'pending') {
+            if ( !$restaurant_new_order_notified && $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && !$order->scheduled && $order->order_status == 'pending') {
                 $data = [
                     'title' => translate('messages.order_push_title'),
                     'description' => translate('messages.new_order_push_description'),
@@ -1882,6 +1887,7 @@ class Helpers
                 ]);
                 $web_push_link = url('/').'/restaurant-panel/order/list/all';
                 self::send_push_notif_to_topic($data, "restaurant_panel_{$order->restaurant->id}_message", 'new_order', $web_push_link);
+                $restaurant_new_order_notified = true;
             }
 
             if ($order->order_status == 'confirmed' && $order->order_type != 'take_away' && config('order_confirmation_model') == 'deliveryman' && $order->payment_method == 'cash_on_delivery') {
