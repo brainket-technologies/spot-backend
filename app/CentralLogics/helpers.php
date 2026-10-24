@@ -1268,7 +1268,7 @@ class Helpers
         $sound = 'notification.wav';
         
         if ($type == 'new_order' || $type == 'order_request' || $type == 'assign' || $title == 'New order placed' || $type == 'New order placed') {
-            $android_channel_id = 'stackfood_new_order_4';
+            $android_channel_id = 'stackfood_new_order_5';
             $sound = 'order_request.mp3';
         } elseif ($type == 'order_status' && $order_status == 'handover') {
             $android_channel_id = 'stackfood_handover_1';
@@ -1343,7 +1343,7 @@ class Helpers
         $sound = 'notification.wav';
         
         if ($type == 'new_order' || $type == 'order_request' || $type == 'assign' || $title == 'New order placed' || $type == 'New order placed') {
-            $android_channel_id = 'stackfood_new_order_4';
+            $android_channel_id = 'stackfood_new_order_5';
             $sound = 'order_request.mp3';
         } elseif ($type == 'order_status' && $order_status == 'handover') {
             $android_channel_id = 'stackfood_handover_1';
@@ -1833,6 +1833,7 @@ class Helpers
                         'description' => translate('messages.new_order_push_description'),
                         'order_id' => $order->id,
                         'image' => '',
+                        'type' => 'order_request',
                     ];
 
                     if($order->zone &&  $deliveryman_push_notification_status?->push_notification_status  == 'active' && $order->order_type != 'dine_in'){
@@ -1935,6 +1936,7 @@ class Helpers
                     'description' => translate('messages.new_order_push_description'),
                     'order_id' => $order->id,
                     'image' => '',
+                    'type' => 'order_request',
                 ];
                 if ( $push_notification_status?->push_notification_status  == 'active' && $restaurant_push_notification_status?->push_notification_status  == 'active' && (($order->restaurant->restaurant_model == 'commission' && $order->restaurant->self_delivery_system)
                 || ($order->restaurant->restaurant_model == 'subscription' &&  isset($order->restaurant->restaurant_sub) && $order->restaurant->restaurant_sub->self_delivery)
