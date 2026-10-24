@@ -1268,7 +1268,7 @@ class Helpers
         $sound = 'notification.wav';
         
         if ($type == 'new_order' || $type == 'order_request' || $type == 'assign' || $title == 'New order placed' || $type == 'New order placed') {
-            $android_channel_id = 'stackfood_new_order_5';
+            $android_channel_id = 'stackfood_new_order_6';
             $sound = 'order_request.mp3';
         } elseif ($type == 'order_status' && $order_status == 'handover') {
             $android_channel_id = 'stackfood_handover_1';
@@ -1343,7 +1343,7 @@ class Helpers
         $sound = 'notification.wav';
         
         if ($type == 'new_order' || $type == 'order_request' || $type == 'assign' || $title == 'New order placed' || $type == 'New order placed') {
-            $android_channel_id = 'stackfood_new_order_5';
+            $android_channel_id = 'stackfood_new_order_6';
             $sound = 'order_request.mp3';
         } elseif ($type == 'order_status' && $order_status == 'handover') {
             $android_channel_id = 'stackfood_handover_1';
