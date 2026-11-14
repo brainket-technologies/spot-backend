@@ -1,74 +1,131 @@
-# Deployment Guide for Spot 2 Delivery (Laravel Backend)
+# Spot 2 Delivery - Backend Deployment & Infrastructure Guide
 
-This document details the deployment process and environment configuration for the **Spot 2 Delivery** backend application, hosted on **GoDaddy Web Hosting Economy (cPanel)**.
-
----
-
-## 1. Environment & Architecture
-- **Framework:** PHP Laravel
-- **Hosting Provider:** GoDaddy (Web Hosting Economy)
-- **Control Panel:** cPanel
-- **Domain:** [spot2delivery.com](https://spot2delivery.com)
-- **Database:** MySQL
+This document contains complete architectural, server, database, and CI/CD deployment documentation for the **Spot 2 Delivery (Laravel Backend)** hosted on **GoDaddy Web Hosting (cPanel)**.
 
 ---
 
-## 2. Directory Structure
-- **Production Root:** `/home/<cpanel_user>/public_html/spot2delivery.com`
-- **Database Backups:** `.mysql_backup/` contains the SQL backup (`spotfood.sql.gz`).
+## 1. Server & Environment Information
+
+| Parameter | Value |
+|---|---|
+| **Domain** | [https://spot2delivery.com](https://spot2delivery.com) |
+| **API Endpoint** | [https://spot2delivery.com/api/v1/config](https://spot2delivery.com/api/v1/config) |
+| **Hosting Provider** | GoDaddy Web Hosting (cPanel Jupiter Theme) |
+| **Server Hostname / IP** | `spot2delivery.com` / `68.178.148.191` |
+| **cPanel / SSH Username** | `fl65s7bvagbn` |
+| **SSH Port** | `22` |
+| **Production Root** | `/home/fl65s7bvagbn/public_html` |
+| **PHP Version** | `PHP 8.3` (CLI: `/usr/local/bin/php`) |
+| **Framework** | Laravel (StackFood Multi-Restaurant System) |
+| **GitHub Repository** | `https://github.com/brainket-technologies/spot-backend.git` |
+| **Production Branch** | `main` |
 
 ---
 
-## 3. Step-by-Step Deployment Procedure
+## 2. Database Configuration
 
-### Step 1: Upload Files to cPanel
-1. Compress the project folder `spot2delivery.com` (excluding the large vendor directory to save time, or use `spot2delivery.com.zip` if uploading the full package).
-2. Log in to your GoDaddy cPanel account.
-3. Open the **File Manager** and navigate to the directory:
-   `/public_html/spot2delivery.com`
-4. Upload the zip file and extract it.
+| Setting | Value |
+|---|---|
+| **Connection** | `mysql` |
+| **Host** | `127.0.0.1` |
+| **Port** | `3306` |
+| **Database Name** | `spotfood` |
+| **Database Username** | `spotfood` |
+| **Database Password** | `SpotFood@2026!` |
 
-### Step 2: Database Setup & Import
-1. In cPanel, navigate to **MySQL® Databases**.
-2. Create a new database named `spotfood`.
-3. Create a new database user named `spotfood` with a strong password (e.g., `Rishabh@7380`).
-4. Associate the user with the database and grant **All Privileges**.
-5. Open **phpMyAdmin** from cPanel, select the `spotfood` database, and import the database backup file:
-   - Decompress `.mysql_backup/spotfood.sql.gz` and import the `.sql` file.
+> **Note:** The server's production `.env` is located at `/home/fl65s7bvagbn/public_html/.env`. It contains live keys and credentials and is protected from being overwritten during automated deployments.
 
-### Step 3: Configure Environment Variables
-Create or update the `.env` file in the production root directory with the following values:
-```env
-APP_NAME=stackfood1741612647
-APP_ENV=live
-APP_KEY=base64:LJw2MMwgKylfdfirSeS5M9543xuWBIfZ27tc9j/cdtk=
-APP_DEBUG=false
-APP_INSTALL=true
-APP_MODE=live
-APP_URL=https://spot2delivery.com/
+---
 
-DB_CONNECTION=mysql
-DB_HOST=localhost
-DB_PORT=3306
-DB_DATABASE=spotfood
-DB_USERNAME=spotfood
-DB_PASSWORD=Rishabh@7380
-```
+## 3. Automated CI/CD Deployment (GitHub Actions)
 
-### Step 4: Configure Cron Jobs (Task Scheduler)
-Set up the following cron jobs in cPanel **Cron Jobs** section to ensure disbursements and regular tasks execute correctly:
+Every push to the `main` branch triggers an automated deployment via GitHub Actions:
+- **Workflow File:** `.github/workflows/deploy.yml`
+- **Trigger:** `git push origin main`
+
+### Required GitHub Repository Secrets
+Set these in **Repository Settings > Secrets and variables > Actions**:
+
+| Secret Name | Value |
+|---|---|
+| `SSH_HOST` | `spot2delivery.com` |
+| `SSH_USERNAME` | `fl65s7bvagbn` |
+| `SSH_PRIVATE_KEY` | *(OpenSSH private key for `fl65s7bvagbn`)* |
+
+### Deployment Pipeline Execution Steps:
+1. Connects to the GoDaddy server via SSH.
+2. Backs up current `.env` file (`cp .env .env.deploy_backup`).
+3. Discards tracked local changes (`git checkout .`).
+4. Pulls latest commit from `origin main` (`git pull origin main`).
+5. Restores `.env` (`cp .env.deploy_backup .env`).
+6. Executes any pending database migrations (`/usr/local/bin/php artisan migrate --force`).
+7. Clears and optimizes caches (`/usr/local/bin/php artisan optimize:clear`).
+
+---
+
+## 4. Scheduled Tasks & Cron Jobs
+
+The following cron jobs are configured and active on the server (`crontab -l`):
+
 ```bash
-# Disbursement Scheduler
-00 10 * * * /usr/bin/php /home/<cpanel_user>/public_html/spot2delivery.com/artisan dm:disbursement
+# 1. Laravel Task Scheduler (Runs every minute)
+* * * * * /usr/local/bin/php /home/fl65s7bvagbn/public_html/artisan schedule:run >> /dev/null 2>&1
 
-# Restaurant Disbursement Scheduler
-00 11 * * * /usr/bin/php /home/<cpanel_user>/public_html/spot2delivery.com/artisan restaurant:disbursement
+# 2. Delivery Man Disbursement (Every day at 10:00 AM)
+00 10 * * * /usr/local/bin/php /home/fl65s7bvagbn/public_html/artisan dm:disbursement >> /dev/null 2>&1
+
+# 3. Restaurant Disbursement (Every day at 11:00 AM)
+00 11 * * * /usr/local/bin/php /home/fl65s7bvagbn/public_html/artisan restaurant:disbursement >> /dev/null 2>&1
 ```
 
 ---
 
-## 4. Verification and Testing
-After deployment, verify the following:
-1. Visit `https://spot2delivery.com/` to ensure the application loads.
-2. Check the Laravel logs under `storage/logs/laravel.log` for any runtime issues or permission errors.
-3. Ensure directory permissions for `storage` and `bootstrap/cache` are set to writeable (`775` or `755`).
+## 5. Manual Server Access & Maintenance
+
+### Connecting via SSH:
+```bash
+ssh -i /path/to/private_key fl65s7bvagbn@spot2delivery.com
+```
+
+### Useful Maintenance Commands on Server:
+```bash
+cd /home/fl65s7bvagbn/public_html
+
+# Check git status
+git status
+
+# Manual git pull
+git pull origin main
+
+# Clear application cache
+/usr/local/bin/php artisan optimize:clear
+
+# Create storage symlink
+/usr/local/bin/php artisan storage:link
+
+# Verify database connection
+/usr/local/bin/php artisan tinker --execute="echo DB::connection()->getDatabaseName();"
+
+# Check storage permissions
+chmod -R 775 storage bootstrap/cache
+```
+
+### Database Backup & Restore:
+```bash
+# Export / Backup Database
+mysqldump -u spotfood -p'SpotFood@2026!' spotfood > /home/fl65s7bvagbn/backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Import / Restore Database
+mysql -u spotfood -p'SpotFood@2026!' spotfood < /path/to/backup.sql
+```
+
+---
+
+## 6. Verification Checklist
+
+After any major update or migration, verify:
+- [x] Website loads: [https://spot2delivery.com](https://spot2delivery.com)
+- [x] API config loads: [https://spot2delivery.com/api/v1/config](https://spot2delivery.com/api/v1/config)
+- [x] Admin Login works: [https://spot2delivery.com/login/admin](https://spot2delivery.com/login/admin)
+- [x] Storage images load without 403/404 errors (`storage/` symlink active).
+- [x] Cron jobs are active and running.
