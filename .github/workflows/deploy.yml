@@ -1,0 +1,29 @@
+name: Deploy Backend to GoDaddy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to GoDaddy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script_stop: true
+          script: |
+            cd /home/fl65s7bvagbn/public_html
+            cp .env .env.deploy_backup
+            git checkout .
+            git pull origin main
+            cp .env.deploy_backup .env
+            /usr/local/bin/php artisan migrate --force
+            /usr/local/bin/php artisan optimize:clear
