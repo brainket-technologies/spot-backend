@@ -18,7 +18,8 @@ This document contains complete architectural, server, database, and CI/CD deplo
 | **PHP Version** | `PHP 8.3` (CLI: `/usr/local/bin/php`) |
 | **Framework** | Laravel (StackFood Multi-Restaurant System) |
 | **GitHub Repository** | `https://github.com/brainket-technologies/spot-backend.git` |
-| **Production Branch** | `main` |
+| **Production Branch** | `main` (Auto-deploys to GoDaddy) |
+| **Development Branch** | `dev_firoz` (Active coding & testing) |
 
 ---
 
@@ -37,7 +38,37 @@ This document contains complete architectural, server, database, and CI/CD deplo
 
 ---
 
-## 3. Automated CI/CD Deployment (GitHub Actions)
+## 3. Git Branching & Deployment Workflow
+
+```
+[ dev_firoz ]  ---> Coding & Local Testing
+      │
+      ▼ (Merge / PR)
+  [ main ]     ---> Auto-Deploy triggers via GitHub Actions ---> GoDaddy Live Server
+```
+
+### Day-to-Day Development Flow:
+1. **Work on `dev_firoz` branch:**
+   ```bash
+   git checkout dev_firoz
+   # Make your changes, code & test
+   git add .
+   git commit -m "Your commit message"
+   git push origin dev_firoz
+   ```
+2. **Deploy to Live (GoDaddy):**
+   Jab testing complete ho jaye aur live karna ho:
+   ```bash
+   git checkout main
+   git merge dev_firoz
+   git push origin main
+   git checkout dev_firoz
+   ```
+   *Jaise hi `main` par push hoga, GitHub Actions automatically live server par deploy kar dega!*
+
+---
+
+## 4. Automated CI/CD Deployment (GitHub Actions)
 
 Every push to the `main` branch triggers an automated deployment via GitHub Actions:
 - **Workflow File:** `.github/workflows/deploy.yml`
@@ -63,7 +94,7 @@ Set these in **Repository Settings > Secrets and variables > Actions**:
 
 ---
 
-## 4. Scheduled Tasks & Cron Jobs
+## 5. Scheduled Tasks & Cron Jobs
 
 The following cron jobs are configured and active on the server (`crontab -l`):
 
@@ -80,7 +111,7 @@ The following cron jobs are configured and active on the server (`crontab -l`):
 
 ---
 
-## 5. Manual Server Access & Maintenance
+## 6. Manual Server Access & Maintenance
 
 ### Connecting via SSH:
 ```bash
@@ -121,7 +152,7 @@ mysql -u spotfood -p'SpotFood@2026!' spotfood < /path/to/backup.sql
 
 ---
 
-## 6. Verification Checklist
+## 7. Verification Checklist
 
 After any major update or migration, verify:
 - [x] Website loads: [https://spot2delivery.com](https://spot2delivery.com)
