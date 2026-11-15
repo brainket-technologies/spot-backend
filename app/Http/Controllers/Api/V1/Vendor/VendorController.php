@@ -297,9 +297,17 @@ class VendorController extends Controller
         }
 
         $vendor = $request['vendor'];
-        $paginator = Order::whereHas('restaurant.vendor', function ($query) use ($vendor) {
+        $base_query = Order::whereHas('restaurant.vendor', function ($query) use ($vendor) {
             $query->where('id', $vendor->id);
-        })
+        })->Notpos();
+
+        $counts = (clone $base_query)
+            ->selectRaw('order_status, count(*) as count')
+            ->whereIn('order_status', ['delivered', 'canceled', 'failed', 'refunded', 'refund_requested', 'refund_request_canceled'])
+            ->groupBy('order_status')
+            ->pluck('count', 'order_status');
+
+        $paginator = (clone $base_query)
             ->with('customer', 'refund')
             ->when($request->status == 'all', function ($query) {
                 return $query->whereIn('order_status', ['refunded', 'refund_requested', 'refund_request_canceled', 'delivered', 'canceled', 'failed']);
@@ -307,7 +315,6 @@ class VendorController extends Controller
             ->when($request->status != 'all', function ($query) use ($request) {
                 return $query->where('order_status', $request->status);
             })
-            ->Notpos()
             ->latest()
             ->paginate($request['limit'], ['*'], 'page', $request['offset']);
         $orders = Helpers::order_data_formatting($paginator->items(), true);
@@ -315,6 +322,10 @@ class VendorController extends Controller
             'total_size' => $paginator->total(),
             'limit' => $request['limit'],
             'offset' => $request['offset'],
+            'delivered' => (int) ($counts['delivered'] ?? 0),
+            'refunded' => (int) (($counts['refunded'] ?? 0) + ($counts['refund_requested'] ?? 0) + ($counts['refund_request_canceled'] ?? 0)),
+            'canceled' => (int) ($counts['canceled'] ?? 0),
+            'failed' => (int) ($counts['failed'] ?? 0),
             'orders' => $orders
         ];
         return response()->json($data, 200);
