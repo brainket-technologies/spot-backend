@@ -2665,6 +2665,25 @@ class Helpers
         return false;
     }
 
+    public static function is_shift_active($shift)
+    {
+        if (!$shift || !$shift->start_time || !$shift->end_time) {
+            return false;
+        }
+
+        $currentTime = now()->format('H:i:s');
+        $start = $shift->start_time;
+        $end = $shift->end_time;
+
+        if ($start <= $end) {
+            // Daytime shift (e.g. 09:00:00 - 11:59:00)
+            return ($currentTime >= $start && $currentTime <= $end);
+        } else {
+            // Overnight shift crossing midnight (e.g. 21:00:00 - 02:00:00)
+            return ($currentTime >= $start || $currentTime <= $end);
+        }
+    }
+
     public static function check_and_expire_dm_shift($dm)
     {
         try {
@@ -2684,28 +2703,12 @@ class Helpers
                 return false;
             }
 
-            $currentTime = now()->format('H:i:s');
-            $start = $shift->start_time;
-            $end = $shift->end_time;
-
-            $isExpired = false;
-            if ($start <= $end) {
-                // Daytime shift (e.g. 09:00:00 - 11:59:00)
-                if ($currentTime > $end || $currentTime < $start) {
-                    $isExpired = true;
-                }
-            } else {
-                // Overnight shift (e.g. 21:00:00 - 02:00:00)
-                if ($currentTime > $end && $currentTime < $start) {
-                    $isExpired = true;
-                }
-            }
-
-            if ($isExpired) {
+            if (!self::is_shift_active($shift)) {
                 $oldShiftId = $dm->shift_id;
                 $dm->active = 0;
                 $dm->shift_id = null;
                 $dm->save();
+                $dm->unsetRelation('dm_shift');
 
                 self::set_time_log(
                     user_id: $dm->id,

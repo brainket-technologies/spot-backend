@@ -6552,4 +6552,7 @@
   'can_not_accept' => 'Can not accept',
   'The order proof field is required.' => 'The order proof field is required.',
   'STATE BANK OF INDIA' => 'STATE BANK OF INDIA',
+  'shift_ended' => 'Shift ended',
+  'your_shift_has_ended_you_are_now_offline' => 'Your shift has ended, you are now offline',
+  'selected_shift_is_not_active_now' => 'Selected shift is not active right now. Please select an active shift or tap Skip.',
 );

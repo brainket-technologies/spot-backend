@@ -100,9 +100,9 @@ class DeliverymanController extends Controller
         $dm['this_month_earning'] =(float)($dm?->this_month_earning()?->sum('original_delivery_charge') + $dm?->this_month_earning()?->sum('dm_tips'));
         $dm['total_incentive_earning']= (float) ($dm?->incentives()?->where('status','approved')->sum('incentive'));
         $dm['incentive_list']= $dm?->zone?->incentives ?? [];
-        $dm['shift_name']= $dm?->dm_shift?->name ?? null;
-        $dm['shift_start_time']= $dm?->dm_shift?->start_time ?? null;
-        $dm['shift_end_time']= $dm?->dm_shift?->end_time ?? null;
+        $dm['shift_name']= ($dm->active && $dm->shift_id) ? ($dm?->dm_shift?->name ?? null) : null;
+        $dm['shift_start_time']= ($dm->active && $dm->shift_id) ? ($dm?->dm_shift?->start_time ?? null) : null;
+        $dm['shift_end_time']= ($dm->active && $dm->shift_id) ? ($dm?->dm_shift?->end_time ?? null) : null;
         unset($dm['dm_shift']);
         unset($dm['zone']);
         unset($dm['orders']);
@@ -192,6 +192,21 @@ class DeliverymanController extends Controller
                 // Delivery boy skipped shift -> manual mode (no shift)
                 $dm->shift_id = null;
             } elseif ($request->filled('shift_id')) {
+                $shift = \App\Models\Shift::where('id', $request->shift_id)->where('status', 1)->first();
+                if (!$shift) {
+                    return response()->json([
+                        'errors' => [
+                            ['code' => 'shift_not_found', 'message' => translate('messages.no_shift_found')]
+                        ]
+                    ], 404);
+                }
+                if (!Helpers::is_shift_active($shift)) {
+                    return response()->json([
+                        'errors' => [
+                            ['code' => 'shift_inactive', 'message' => translate('messages.selected_shift_is_not_active_now')]
+                        ]
+                    ], 403);
+                }
                 $dm->shift_id = $request->shift_id;
             } else {
                 $dm->shift_id = null;
