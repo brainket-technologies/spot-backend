@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 class AutoCancelUnacceptedOrders extends Command
 {
     protected $signature = 'order:auto-cancel-unaccepted';
-    protected $description = 'Auto-cancel orders not accepted by restaurant or delivery boy within 10 minutes with wallet refund for online/wallet payments';
+    protected $description = 'Auto-cancel orders not accepted by restaurant (10m) or delivery boy (restaurant processing time / 15m) with wallet refund for online/wallet payments';
 
     public function __construct()
     {
@@ -22,6 +22,7 @@ class AutoCancelUnacceptedOrders extends Command
 
     public function handle()
     {
+        $now = Carbon::now();
         $tenMinutesAgo = Carbon::now()->subMinutes(10);
         $fiveMinutesAgoStart = Carbon::now()->subMinutes(6);
         $fiveMinutesAgoEnd = Carbon::now()->subMinutes(5);
@@ -49,11 +50,12 @@ class AutoCancelUnacceptedOrders extends Command
                 }
             }
         } catch (\Exception $e) {
-            info(["5-min alert error: " . $e->getMessage()]);
+            info(["5-min pending alert error: " . $e->getMessage()]);
         }
 
         // -----------------------------------------------------------------
         // 2. Auto-Cancel: Restaurant did not accept within 10 minutes
+        // (order_status == 'pending')
         // -----------------------------------------------------------------
         $unacceptedByRestaurant = Order::with(['details', 'restaurant.vendor', 'customer'])
             ->where('order_status', 'pending')
@@ -68,29 +70,78 @@ class AutoCancelUnacceptedOrders extends Command
         }
 
         // -----------------------------------------------------------------
-        // 3. Auto-Cancel: No Delivery Boy accepted within 10 minutes
-        // (Order confirmed by restaurant, but delivery_man_id is still null)
+        // 3. Send 5-Minute Alert: Restaurant is cooking/confirmed but no delivery boy accepted yet
+        // -----------------------------------------------------------------
+        try {
+            $kitchenOrders = Order::with(['restaurant.vendor'])
+                ->whereIn('order_status', ['confirmed', 'processing', 'handover'])
+                ->where('order_type', 'delivery')
+                ->whereNull('delivery_man_id')
+                ->where('scheduled', 0)
+                ->get();
+
+            foreach ($kitchenOrders as $order) {
+                $startTime = $order->processing ?? $order->confirmed ?? $order->created_at;
+                if ($startTime) {
+                    $elapsedMinutes = Carbon::parse($startTime)->diffInMinutes($now);
+                    // Alert around the 5th minute
+                    if ($elapsedMinutes == 5) {
+                        if ($order->restaurant && $order->restaurant->vendor && $order->restaurant->vendor->firebase_token) {
+                            $alertData = [
+                                'title' => 'Searching for Delivery Partner',
+                                'description' => "Order #{$order->id}: No delivery boy accepted yet. System is searching for nearby delivery partners.",
+                                'order_id' => $order->id,
+                                'image' => '',
+                                'type' => 'delivery_partner_searching',
+                            ];
+                            Helpers::send_push_notif_to_device($order->restaurant->vendor->firebase_token, $alertData);
+                        }
+
+                        // Also alert admin topic
+                        $adminAlertData = [
+                            'title' => 'Driver Unassigned Alert',
+                            'description' => "Order #{$order->id} is in kitchen for 5 minutes, but no delivery boy has accepted yet.",
+                            'order_id' => $order->id,
+                            'image' => '',
+                            'type' => 'order_unassigned_alert',
+                        ];
+                        Helpers::send_push_notif_to_topic($adminAlertData, 'admin_message', 'order_request', url('/').'/admin/order/list/all');
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            info(["5-min kitchen driver alert error: " . $e->getMessage()]);
+        }
+
+        // -----------------------------------------------------------------
+        // 4. Auto-Cancel: No Delivery Boy accepted within Restaurant Processing Time
+        // Restaurant enters processing time (e.g. 15, 20 mins, default 15)
+        // If cooking window finishes and delivery_man_id is still null -> Auto-Cancel
         // -----------------------------------------------------------------
         $unacceptedByDeliveryman = Order::with(['details', 'restaurant.vendor', 'customer'])
-            ->where('order_status', 'confirmed')
+            ->whereIn('order_status', ['confirmed', 'processing', 'handover'])
             ->where('order_type', 'delivery')
             ->whereNull('delivery_man_id')
             ->where('scheduled', 0)
-            ->where(function ($query) use ($tenMinutesAgo) {
-                $query->where('confirmed', '<=', $tenMinutesAgo)
-                      ->orWhere(function ($q) use ($tenMinutesAgo) {
-                          $q->whereNull('confirmed')->where('created_at', '<=', $tenMinutesAgo);
-                      });
-            })
             ->get();
 
         $deliveryCancelCount = 0;
         foreach ($unacceptedByDeliveryman as $order) {
-            $this->cancelOrderWithRefund($order, 'No delivery partner available');
-            $deliveryCancelCount++;
+            // Restaurant processing time in minutes entered by restaurant (fallback to 15 if empty or 0)
+            $processingMinutes = (!empty($order->processing_time) && (int)$order->processing_time > 0)
+                ? (int)$order->processing_time
+                : 15;
+
+            $startTime = $order->processing ?? $order->confirmed ?? $order->created_at;
+            $cutoffTime = Carbon::parse($startTime)->addMinutes($processingMinutes);
+
+            if ($now->greaterThanOrEqualTo($cutoffTime)) {
+                $this->cancelOrderWithRefund($order, 'No delivery partner available');
+                $deliveryCancelCount++;
+            }
         }
 
-        $this->info("Auto-cancelled: {$restaurantCancelCount} orders unaccepted by restaurant, {$deliveryCancelCount} orders unaccepted by delivery boy.");
+        $this->info("Auto-cancel complete: {$restaurantCancelCount} orders unaccepted by restaurant, {$deliveryCancelCount} orders unaccepted by delivery boy.");
         return 0;
     }
 
@@ -110,17 +161,18 @@ class AutoCancelUnacceptedOrders extends Command
             Helpers::increment_order_count($order->restaurant);
 
             // ---------------------------------------------------------
-            // Refund Rule:
-            // - If COD: NO REFUND (cash was not collected)
-            // - If Online / Wallet: REFUND TO CUSTOMER WALLET
+            // Refund Rule (User Specification):
+            // - Cash on Delivery (COD): NO REFUND (money not collected)
+            // - Online / Digital Payment / Wallet: REFUND TO CUSTOMER WALLET
             // ---------------------------------------------------------
-            $isRefundable = in_array($order->payment_method, ['digital_payment', 'wallet'])
-                            || ($order->payment_status == 'paid' && $order->payment_method != 'cash_on_delivery');
+            $isCod = ($order->payment_method == 'cash_on_delivery');
+            $isPaidOnlineOrWallet = in_array($order->payment_method, ['digital_payment', 'wallet'])
+                                    || ($order->payment_status == 'paid' && !$isCod);
 
             $refunded = false;
             $refundAmount = (float) $order->order_amount;
 
-            if ($isRefundable && $refundAmount > 0 && $order->user_id && $order->is_guest == 0) {
+            if (!$isCod && $isPaidOnlineOrWallet && $refundAmount > 0 && $order->user_id && $order->is_guest == 0) {
                 CustomerLogic::create_wallet_transaction(
                     user_id: $order->user_id,
                     amount: $refundAmount,
@@ -172,7 +224,7 @@ class AutoCancelUnacceptedOrders extends Command
                 Helpers::send_push_notif_to_device($order->restaurant->vendor->firebase_token, $restNotif);
             }
 
-            // Fire standard notification handler
+            // Standard order notification trigger
             Helpers::send_order_notification($order);
 
         } catch (\Exception $e) {

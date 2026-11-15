@@ -321,6 +321,7 @@ class DeliverymanController extends Controller
         $dm=DeliveryMan::where(['auth_token' => $request['token']])->first();
         $order = Order::where('id', $request['order_id'])
         ->whereNull('delivery_man_id')
+        ->whereNotIn('order_status', ['canceled', 'failed'])
         ->Notpos()
         ->first();
         if(!$order)
