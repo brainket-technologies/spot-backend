@@ -42,6 +42,7 @@ class DeliverymanController extends Controller
         $dm['avg_rating'] = (double)($dm?->rating[0]?->average ?? 0);
         $dm['rating_count'] = (double)($dm?->rating[0]?->rating_count ?? 0);
         $dm['order_count'] =(integer)$dm?->orders->count();
+        $dm['total_delivery'] = (integer) Order::where('delivery_man_id', $dm?->id)->where('order_status', 'delivered')->count();
         $dm['todays_order_count'] =(integer)$dm->todaysorders->count();
         $dm['this_week_order_count'] =(integer)$dm->this_week_orders->count();
         $dm['member_since_days'] =(integer)$dm->created_at->diffInDays();
