@@ -2665,6 +2665,74 @@ class Helpers
         return false;
     }
 
+    public static function check_and_expire_dm_shift($dm)
+    {
+        try {
+            if (!$dm || !$dm->active || !$dm->shift_id) {
+                return false;
+            }
+            $shift = $dm->dm_shift ?? \App\Models\Shift::find($dm->shift_id);
+            if (!$shift || !$shift->start_time || !$shift->end_time) {
+                return false;
+            }
+
+            // Check if delivery boy has in-progress orders
+            $hasActiveOrders = \App\Models\Order::where('delivery_man_id', $dm->id)
+                ->whereIn('order_status', ['accepted', 'confirmed', 'pending', 'processing', 'picked_up', 'handover'])
+                ->exists();
+            if ($hasActiveOrders) {
+                return false;
+            }
+
+            $currentTime = now()->format('H:i:s');
+            $start = $shift->start_time;
+            $end = $shift->end_time;
+
+            $isExpired = false;
+            if ($start <= $end) {
+                // Daytime shift (e.g. 09:00:00 - 11:59:00)
+                if ($currentTime > $end || $currentTime < $start) {
+                    $isExpired = true;
+                }
+            } else {
+                // Overnight shift (e.g. 21:00:00 - 02:00:00)
+                if ($currentTime > $end && $currentTime < $start) {
+                    $isExpired = true;
+                }
+            }
+
+            if ($isExpired) {
+                $oldShiftId = $dm->shift_id;
+                $dm->active = 0;
+                $dm->shift_id = null;
+                $dm->save();
+
+                self::set_time_log(
+                    user_id: $dm->id,
+                    date: date('Y-m-d'),
+                    online: null,
+                    offline: now(),
+                    shift_id: $oldShiftId
+                );
+
+                if (!empty($dm->fcm_token)) {
+                    $notifData = [
+                        'title' => translate('messages.shift_ended'),
+                        'description' => translate('messages.your_shift_has_ended_you_are_now_offline'),
+                        'order_id' => '',
+                        'image' => '',
+                        'type' => 'shift_ended'
+                    ];
+                    self::send_push_notif_to_device($dm->fcm_token, $notifData);
+                }
+                return true;
+            }
+        } catch (\Exception $e) {
+            info(["Shift Expiry Check Error: " . $e->getMessage()]);
+        }
+        return false;
+    }
+
     public static function push_notification_export_data($data){
         $format = [];
         foreach($data as $key=>$item){

@@ -37,6 +37,10 @@ class DeliverymanController extends Controller
     public function get_profile(Request $request)
     {
         $dm = DeliveryMan::with(['rating','userinfo','dm_shift'])->where(['auth_token' => $request['token']])->first();
+        if (!$dm) {
+            return response()->json(['message' => translate('messages.unauthenticated')], 401);
+        }
+        Helpers::check_and_expire_dm_shift($dm);
         $min_amount_to_pay_dm = BusinessSetting::where('key' , 'min_amount_to_pay_dm')->first()->value ?? 0;
 
         $dm['avg_rating'] = (double)($dm?->rating[0]?->average ?? 0);
@@ -170,18 +174,40 @@ class DeliverymanController extends Controller
 
     public function activeStatus(Request $request)
     {
-        // $shift_id =$request->shift_id ?? Null;
         $dm = DeliveryMan::with(['rating'])->where(['auth_token' => $request['token']])->first();
-        $dm->active = $dm->active?0:1;
-        $dm->shift_id =$request->shift_id ?? $dm->shift_id ??  null;
-        $dm->save();
-        Helpers::set_time_log(user_id:$dm->id,date: date('Y-m-d') ,online: ($dm->active ? now() : null),offline: ($dm->active ? null : now()) , shift_id:$dm->shift_id );
+        if (!$dm) {
+            return response()->json(['message' => translate('messages.unauthenticated')], 401);
+        }
+        $dm->active = $dm->active ? 0 : 1;
+
+        if (!$dm->active) {
+            // Going offline -> clear shift_id
+            $oldShiftId = $dm->shift_id;
+            $dm->shift_id = null;
+            $dm->save();
+            Helpers::set_time_log(user_id:$dm->id, date: date('Y-m-d'), online: null, offline: now(), shift_id:$oldShiftId);
+        } else {
+            // Going online
+            if ($request->has('is_skip') && $request->is_skip == 1) {
+                // Delivery boy skipped shift -> manual mode (no shift)
+                $dm->shift_id = null;
+            } elseif ($request->filled('shift_id')) {
+                $dm->shift_id = $request->shift_id;
+            } else {
+                $dm->shift_id = null;
+            }
+            $dm->save();
+            Helpers::set_time_log(user_id:$dm->id, date: date('Y-m-d'), online: now(), offline: null, shift_id:$dm->shift_id);
+        }
         return response()->json(['message' => translate('messages.active_status_updated')], 200);
     }
 
     public function get_current_orders(Request $request)
     {
         $dm = DeliveryMan::where(['auth_token' => $request['token']])->first();
+        if ($dm) {
+            Helpers::check_and_expire_dm_shift($dm);
+        }
         $orders = Order::with(['customer', 'restaurant'])
         ->whereIn('order_status', ['accepted','confirmed','pending', 'processing', 'picked_up', 'handover'])
         ->where(['delivery_man_id' => $dm['id']])
