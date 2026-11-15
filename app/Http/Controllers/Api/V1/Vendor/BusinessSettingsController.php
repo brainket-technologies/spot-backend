@@ -23,7 +23,7 @@ class BusinessSettingsController extends Controller
         $validator = Validator::make($request->all(), [
             // 'name' => 'required',
             // 'address' => 'required',
-            'contact_number' => 'required',
+            'contact_number' => 'nullable',
             'delivery' => 'required|boolean',
             'take_away' => 'required|boolean',
             'schedule_order' => 'required|boolean',
@@ -63,9 +63,9 @@ class BusinessSettingsController extends Controller
         });
 
 
-        $data_trans = json_decode($request->translations, true);
+        $data_trans = $request->translations ? json_decode($request->translations, true) : null;
 
-        if (count($data_trans ?? []) < 1) {
+        if ($request->has('translations') && count($data_trans ?? []) < 1) {
             $validator->getMessageBag()->add('translations', translate('messages.Name and address in english is required'));
         }
 
@@ -205,10 +205,24 @@ class BusinessSettingsController extends Controller
         // $restaurant->address = $request->address;
 
 
-        $restaurant->name = $data_trans[0]['value'];
-        $restaurant->address = $data_trans[1]['value'];
+        if (!empty($data_trans)) {
+            if (isset($data_trans[0]['value'])) {
+                $restaurant->name = $data_trans[0]['value'];
+            }
+            if (isset($data_trans[1]['value'])) {
+                $restaurant->address = $data_trans[1]['value'];
+            }
+            if (isset($data_trans[2]['value'])) {
+                $restaurant->meta_title = $data_trans[2]['value'];
+            }
+            if (isset($data_trans[3]['value'])) {
+                $restaurant->meta_description = $data_trans[3]['value'];
+            }
+        }
 
-        $restaurant->phone = $request->contact_number;
+        if ($request->has('contact_number') && !empty($request->contact_number)) {
+            $restaurant->phone = $request->contact_number;
+        }
         $restaurant->minimum_shipping_charge = $data?$request->minimum_delivery_charge??0: $restaurant->minimum_shipping_charge;
         $restaurant->per_km_shipping_charge = $data?$request->per_km_delivery_charge??0: $restaurant->per_km_shipping_charge;
 
@@ -217,8 +231,6 @@ class BusinessSettingsController extends Controller
         $restaurant->cover_photo = $request->has('cover_photo') ? Helpers::update(dir:'restaurant/cover/', old_image:$restaurant->cover_photo,format: 'png', image:$request->file('cover_photo')) : $restaurant->cover_photo;
         // $restaurant->delivery_time =$request->minimum_delivery_time .'-'. $request->maximum_delivery_time.'-'.$request->delivery_time_type;
 
-        $restaurant->meta_title = $data_trans[2]['value'];
-        $restaurant->meta_description = $data_trans[3]['value'];
         $restaurant->meta_image = $request->has('meta_image') ? Helpers::update(dir:'restaurant/',old_image: $restaurant->meta_image, format:'png',image: $request->file('meta_image')) : $restaurant->meta_image;
 
 
@@ -246,15 +258,17 @@ class BusinessSettingsController extends Controller
 
 
 
-        foreach ($data_trans as $key=>$i) {
+        if (!empty($data_trans)) {
+            foreach ($data_trans as $key=>$i) {
 
-            Translation::updateOrInsert(
-                ['translationable_type'  => 'App\Models\Restaurant',
-                    'translationable_id'    => $restaurant->id,
-                    'locale'                => $i['locale'],
-                    'key'                   => $i['key']],
-                ['value'                 => $i['value']]
-            );
+                Translation::updateOrInsert(
+                    ['translationable_type'  => 'App\Models\Restaurant',
+                        'translationable_id'    => $restaurant->id,
+                        'locale'                => $i['locale'],
+                        'key'                   => $i['key']],
+                    ['value'                 => $i['value']]
+                );
+            }
         }
 
         $cuisine_ids = [];
@@ -329,5 +343,79 @@ class BusinessSettingsController extends Controller
         $combinedNames = array_merge($cuisineNames, $categoryNames);
 
         return response()->json($combinedNames,200);
+    }
+
+    public function update_basic_info(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'contact_number' => 'nullable',
+            'logo' => 'nullable|max:2048',
+            'cover_photo' => 'nullable|max:2048',
+            'meta_image' => 'nullable|max:2048',
+        ]);
+
+        $data_trans = $request->translations ? json_decode($request->translations, true) : null;
+
+        if ($request->has('translations') && count($data_trans ?? []) < 1) {
+            $validator->getMessageBag()->add('translations', translate('messages.Name and address in english is required'));
+        }
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)], 403);
+        }
+
+        $restaurant = $request['vendor']->restaurants[0];
+
+        if (!empty($data_trans)) {
+            if (isset($data_trans[0]['value'])) {
+                $restaurant->name = $data_trans[0]['value'];
+            }
+            if (isset($data_trans[1]['value'])) {
+                $restaurant->address = $data_trans[1]['value'];
+            }
+            if (isset($data_trans[2]['value'])) {
+                $restaurant->meta_title = $data_trans[2]['value'];
+            }
+            if (isset($data_trans[3]['value'])) {
+                $restaurant->meta_description = $data_trans[3]['value'];
+            }
+
+            foreach ($data_trans as $key => $i) {
+                Translation::updateOrInsert(
+                    [
+                        'translationable_type' => 'App\Models\Restaurant',
+                        'translationable_id' => $restaurant->id,
+                        'locale' => $i['locale'],
+                        'key' => $i['key']
+                    ],
+                    ['value' => $i['value']]
+                );
+            }
+        }
+
+        if ($request->has('contact_number') && !empty($request->contact_number)) {
+            $restaurant->phone = $request->contact_number;
+        }
+
+        if ($request->has('logo')) {
+            $restaurant->logo = Helpers::update(dir:'restaurant/', old_image:$restaurant->logo, format:'png', image:$request->file('logo'));
+        }
+        if ($request->has('cover_photo')) {
+            $restaurant->cover_photo = Helpers::update(dir:'restaurant/cover/', old_image:$restaurant->cover_photo, format:'png', image:$request->file('cover_photo'));
+        }
+        if ($request->has('meta_image')) {
+            $restaurant->meta_image = Helpers::update(dir:'restaurant/', old_image:$restaurant->meta_image, format:'png', image:$request->file('meta_image'));
+        }
+
+        $restaurant->save();
+
+        if ($restaurant?->vendor?->userinfo) {
+            $userinfo = $restaurant->vendor->userinfo;
+            $userinfo->f_name = $restaurant->name;
+            $userinfo->image = $restaurant->logo;
+            $userinfo->save();
+        }
+
+        return response()->json(['message' => translate('messages.restaurant_settings_updated')], 200);
     }
 }

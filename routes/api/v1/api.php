@@ -194,6 +194,8 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
 
         // Business setup
         Route::put('update-business-setup', 'BusinessSettingsController@update_restaurant_setup');
+        Route::post('update-basic-info', 'BusinessSettingsController@update_basic_info');
+        Route::put('update-basic-info', 'BusinessSettingsController@update_basic_info');
         Route::get('get-characteristic-suggestion', 'BusinessSettingsController@suggestion_list');
 
         // Reataurant schedule
