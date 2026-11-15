@@ -1837,11 +1837,7 @@ class Helpers
                     ];
 
                     if($order->zone &&  $deliveryman_push_notification_status?->push_notification_status  == 'active' && $order->order_type != 'dine_in'){
-                        if($order->vehicle_id){
-                            $topic = 'delivery_man_'.$order->zone_id.'_'.$order->vehicle_id;
-                            self::send_push_notif_to_topic($data, $topic, 'order_request');
-                        }
-                        self::send_push_notif_to_topic($data, $order->zone->deliveryman_wise_topic, 'order_request');
+                        self::send_order_notification_to_eligible_deliverymen($order, $data);
                     }
                 }
             }
@@ -1945,11 +1941,7 @@ class Helpers
                     self::send_push_notif_to_topic($data, "restaurant_dm_" . $order->restaurant_id, 'order_request');
                 } else {
                     if($order->zone && $deliveryman_push_notification_status?->push_notification_status  == 'active' && $order->order_type != 'dine_in'){
-                        if($order->vehicle_id){
-                            $topic = 'delivery_man_'.$order->zone_id.'_'.$order->vehicle_id;
-                            self::send_push_notif_to_topic($data, $topic, 'order_request');
-                        }
-                        self::send_push_notif_to_topic($data, $order->zone->deliveryman_wise_topic, 'order_request');
+                        self::send_order_notification_to_eligible_deliverymen($order, $data);
                     }
                 }
             }
@@ -2734,6 +2726,157 @@ class Helpers
             info(["Shift Expiry Check Error: " . $e->getMessage()]);
         }
         return false;
+    }
+
+    public static function send_order_notification_to_eligible_deliverymen($order, $data)
+    {
+        try {
+            $eligibleDMs = self::get_eligible_delivery_men_for_order($order);
+            if ($eligibleDMs && $eligibleDMs->isNotEmpty()) {
+                foreach ($eligibleDMs as $dm) {
+                    if (!empty($dm->fcm_token)) {
+                        self::send_push_notif_to_device($dm->fcm_token, $data);
+                        \Illuminate\Support\Facades\DB::table('user_notifications')->insert([
+                            'data' => json_encode($data),
+                            'delivery_man_id' => $dm->id,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            info(["send_order_notification_to_eligible_deliverymen Error: " . $e->getMessage()]);
+        }
+    }
+
+    public static function get_eligible_delivery_men_for_order($order)
+    {
+        try {
+            $zone_id = $order->zone_id ?? ($order->zone ? $order->zone->id : null);
+            if (!$zone_id && $order->restaurant) {
+                $zone_id = $order->restaurant->zone_id;
+            }
+            if (!$zone_id) {
+                return collect([]);
+            }
+
+            $orderDistance = (float) ($order->distance ?? 0);
+            $maxOrdersPerDm = config('dm_maximum_orders', 3);
+
+            $deliveryMen = \App\Models\DeliveryMan::with(['vehicle', 'dm_shift', 'last_location'])
+                ->where('zone_id', $zone_id)
+                ->where('status', 1)
+                ->where('active', 1)
+                ->where('current_orders', '<', $maxOrdersPerDm)
+                ->get();
+
+            $eligible = collect([]);
+
+            foreach ($deliveryMen as $dm) {
+                // 1. Shift check: if shift_id is set, shift must be active
+                if ($dm->shift_id) {
+                    $shift = $dm->dm_shift ?? \App\Models\Shift::find($dm->shift_id);
+                    if (!self::is_shift_active($shift)) {
+                        self::check_and_expire_dm_shift($dm);
+                        continue;
+                    }
+                }
+
+                // 2. Vehicle coverage area check
+                if ($dm->vehicle) {
+                    $startCoverage = (float) $dm->vehicle->starting_coverage_area;
+                    $maxCoverage = (float) $dm->vehicle->maximum_coverage_area;
+                    $covers = ($orderDistance >= $startCoverage && $orderDistance <= $maxCoverage)
+                           || ($orderDistance <= $startCoverage && $startCoverage <= 1.0);
+                    if (!$covers) {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+
+                // 3. Location In-Zone Check
+                if ($dm->last_location && $dm->last_location->latitude && $dm->last_location->longitude) {
+                    $lat = $dm->last_location->latitude;
+                    $lng = $dm->last_location->longitude;
+                    $isInsideZone = \Illuminate\Support\Facades\DB::table('zones')
+                        ->where('id', $zone_id)
+                        ->whereRaw("ST_Contains(coordinates, ST_GeomFromText(CONCAT('POINT(', ?, ' ', ?, ')'), 4326))", [$lng, $lat])
+                        ->exists();
+
+                    if (!$isInsideZone) {
+                        continue;
+                    }
+                }
+
+                $eligible->push($dm);
+            }
+
+            return $eligible;
+        } catch (\Exception $e) {
+            info(["get_eligible_delivery_men_for_order Error: " . $e->getMessage()]);
+            return collect([]);
+        }
+    }
+
+    public static function is_delivery_man_available_for_order(int $zone_id, float $distance = 0)
+    {
+        try {
+            $maxOrdersPerDm = config('dm_maximum_orders', 3);
+
+            $deliveryMen = \App\Models\DeliveryMan::with(['vehicle', 'dm_shift', 'last_location'])
+                ->where('zone_id', $zone_id)
+                ->where('status', 1)
+                ->where('active', 1)
+                ->where('current_orders', '<', $maxOrdersPerDm)
+                ->get();
+
+            foreach ($deliveryMen as $dm) {
+                // 1. Shift check
+                if ($dm->shift_id) {
+                    $shift = $dm->dm_shift ?? \App\Models\Shift::find($dm->shift_id);
+                    if (!self::is_shift_active($shift)) {
+                        self::check_and_expire_dm_shift($dm);
+                        continue;
+                    }
+                }
+
+                // 2. Vehicle coverage area check
+                if ($dm->vehicle) {
+                    $startCoverage = (float) $dm->vehicle->starting_coverage_area;
+                    $maxCoverage = (float) $dm->vehicle->maximum_coverage_area;
+                    $covers = ($distance >= $startCoverage && $distance <= $maxCoverage)
+                           || ($distance <= $startCoverage && $startCoverage <= 1.0);
+                    if (!$covers) {
+                        continue;
+                    }
+                } else {
+                    continue;
+                }
+
+                // 3. Location In-Zone Check
+                if ($dm->last_location && $dm->last_location->latitude && $dm->last_location->longitude) {
+                    $lat = $dm->last_location->latitude;
+                    $lng = $dm->last_location->longitude;
+                    $isInsideZone = \Illuminate\Support\Facades\DB::table('zones')
+                        ->where('id', $zone_id)
+                        ->whereRaw("ST_Contains(coordinates, ST_GeomFromText(CONCAT('POINT(', ?, ' ', ?, ')'), 4326))", [$lng, $lat])
+                        ->exists();
+
+                    if (!$isInsideZone) {
+                        continue;
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
+        } catch (\Exception $e) {
+            info(["is_delivery_man_available_for_order Error: " . $e->getMessage()]);
+            return false;
+        }
     }
 
     public static function push_notification_export_data($data){

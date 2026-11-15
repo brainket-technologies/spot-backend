@@ -713,21 +713,21 @@ class OrderController extends Controller
             $restaurant = $order_validation_check;
         }
         
-        // start here my code for not available delivery men 
+        // Check delivery man availability for delivery orders
         if($request['order_type'] == 'delivery') {
-            // Find delivery men with matching zone_id
-            $delivery_men = DeliveryMan::whereIn('zone_id', [$restaurant->zone_id])->get();
-            
-            // Check if any have both status=1 AND active=1
-            $available_delivery_men = $delivery_men->where('status', 1)->where('active', 1);
-            
-            if(count($available_delivery_men) == 0) {
-                DB::rollBack();
-                return response()->json([
-                    'errors' => [
-                        ['code' => 'delivery_men', 'message' => translate('messages.delivery_men_not_available')]
-                    ]
-                ], 403);
+            $isSelfDelivery = (($restaurant->restaurant_model == 'commission' && $restaurant->self_delivery_system)
+                || ($restaurant->restaurant_model == 'subscription' && isset($restaurant->restaurant_sub) && $restaurant->restaurant_sub->self_delivery));
+
+            if (!$isSelfDelivery) {
+                $isAvailable = Helpers::is_delivery_man_available_for_order((int) $restaurant->zone_id, (float) ($request->distance ?? 0));
+                if(!$isAvailable) {
+                    DB::rollBack();
+                    return response()->json([
+                        'errors' => [
+                            ['code' => 'no_delivery_man', 'message' => translate('messages.no_delivery_man_available_at_this_time')]
+                        ]
+                    ], 403);
+                }
             }
         }
         

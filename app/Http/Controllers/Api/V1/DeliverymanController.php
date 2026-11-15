@@ -236,14 +236,26 @@ class DeliverymanController extends Controller
 
     public function get_latest_orders(Request $request)
     {
-        $dm = DeliveryMan::where(['auth_token' => $request['token']])->first();
+        $dm = DeliveryMan::with(['vehicle', 'dm_shift'])->where(['auth_token' => $request['token']])->first();
+
+        if (!$dm || $dm->active != 1) {
+            return response()->json([], 200);
+        }
+
+        if ($dm->shift_id) {
+            $shift = $dm->dm_shift ?? \App\Models\Shift::find($dm->shift_id);
+            if (!Helpers::is_shift_active($shift)) {
+                Helpers::check_and_expire_dm_shift($dm);
+                return response()->json([], 200);
+            }
+        }
 
         $orders = Order::with(['customer', 'restaurant']);
 
         if($dm->type == 'zone_wise')
-            {
-                $orders = $orders
-                ->whereHas('restaurant', function($q) use($dm){
+        {
+            $orders = $orders->where(function($query) use ($dm) {
+                $query->whereHas('restaurant', function($q) use($dm){
                     $q->where('restaurant_model','subscription')->where('zone_id', $dm->zone_id)->whereHas('restaurant_sub', function($q1){
                         $q1->where('self_delivery', 0);
                     });
@@ -251,11 +263,12 @@ class DeliverymanController extends Controller
                 ->orWhereHas('restaurant', function($qu) use($dm) {
                     $qu->where('restaurant_model','commission')->where('zone_id', $dm->zone_id)->where('self_delivery_system', 0);
                 });
-            }
-            else
-            {
-                $orders = $orders->where('restaurant_id', $dm->restaurant_id);
-            }
+            });
+        }
+        else
+        {
+            $orders = $orders->where('restaurant_id', $dm->restaurant_id);
+        }
 
         if(config('order_confirmation_model') == 'deliveryman' && $dm->type == 'zone_wise')
         {
@@ -271,7 +284,20 @@ class DeliverymanController extends Controller
         }
 
         if(isset($dm->vehicle_id )){
-            $orders = $orders->where('vehicle_id',$dm->vehicle_id);
+            $vehicle = $dm->vehicle ?? \App\Models\Vehicle::find($dm->vehicle_id);
+            if ($vehicle) {
+                $start = (float) $vehicle->starting_coverage_area;
+                $max = (float) $vehicle->maximum_coverage_area;
+                $orders = $orders->where(function($q) use ($dm, $start, $max) {
+                    $q->where('vehicle_id', $dm->vehicle_id)
+                      ->orWhere(function($sub) use ($start, $max) {
+                          $sub->where('distance', '>=', $start)
+                              ->where('distance', '<=', $max);
+                      });
+                });
+            } else {
+                $orders = $orders->where('vehicle_id',$dm->vehicle_id);
+            }
         }
         $orders = $orders->delivery()
         ->OrderScheduledIn(30)
