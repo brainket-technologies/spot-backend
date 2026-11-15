@@ -204,6 +204,9 @@
                                 @else
                                     <label class="badge badge-soft-danger mb-0 ml-1">{{translate('messages.offline')}}</label>
                                 @endif
+                                @if($dm->dm_shift)
+                                    <label class="badge badge-soft-info mb-0 ml-1">{{ $dm->dm_shift->name }} ({{ Carbon\Carbon::parse($dm->dm_shift->start_time)->locale(app()->getLocale())->translatedFormat(config('timeformat') ?? 'h:i A') }} - {{ Carbon\Carbon::parse($dm->dm_shift->end_time)->locale(app()->getLocale())->translatedFormat(config('timeformat') ?? 'h:i A') }})</label>
+                                @endif
                             @else
                             <span class="badge badge-danger">{{translate('messages.suspended')}}</span>
                             @endif

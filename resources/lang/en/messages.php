@@ -6555,4 +6555,5 @@
   'shift_ended' => 'Shift ended',
   'your_shift_has_ended_you_are_now_offline' => 'Your shift has ended, you are now offline',
   'selected_shift_is_not_active_now' => 'Selected shift is not active right now. Please select an active shift or tap Skip.',
+  'shift' => 'Shift',
 );

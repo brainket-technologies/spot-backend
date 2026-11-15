@@ -43,7 +43,7 @@ class DeliveryManController extends Controller
     {
         $key = explode(' ', $request['search']);
         $zone_id = $request->query('zone_id', 'all');
-        $delivery_men = DeliveryMan::with(['orders','rating','zone'])->
+        $delivery_men = DeliveryMan::with(['orders','rating','zone','dm_shift'])->
         when(is_numeric($zone_id), function($query) use($zone_id){
             return $query->where('zone_id', $zone_id);
         })->where('type','zone_wise')->latest()->where('application_status','approved')
@@ -101,7 +101,7 @@ class DeliveryManController extends Controller
     public function preview(Request $request, $id, $tab='info')
     {
         $key = explode(' ', $request['search']);
-        $dm = DeliveryMan::with(['reviews'])->where('type','zone_wise')->where(['id' => $id])->first();
+        $dm = DeliveryMan::with(['reviews', 'dm_shift'])->where('type','zone_wise')->where(['id' => $id])->first();
         if($tab == 'info')
         {
             $reviews=DMReview::where(['delivery_man_id'=>$id])->latest()->paginate(config('default_pagination'));

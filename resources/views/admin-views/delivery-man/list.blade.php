@@ -165,6 +165,12 @@
                                                 {{ translate('Active_Status') }} : <strong class="text-info text-capitalize">{{translate('messages.pending')}}</strong>
                                             </div>
                                         @endif
+                                        @if($dm->dm_shift)
+                                            <div>
+                                                {{ translate('messages.shift') }} : <strong class="text-info">{{ $dm->dm_shift->name }}</strong>
+                                                <small class="text-muted d-block">({{ Carbon\Carbon::parse($dm->dm_shift->start_time)->locale(app()->getLocale())->translatedFormat(config('timeformat') ?? 'h:i A') }} - {{ Carbon\Carbon::parse($dm->dm_shift->end_time)->locale(app()->getLocale())->translatedFormat(config('timeformat') ?? 'h:i A') }})</small>
+                                            </div>
+                                        @endif
                                     </td>
                                     <td>
                                         <div class="btn--container justify-content-center">
