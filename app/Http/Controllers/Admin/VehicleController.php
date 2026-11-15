@@ -35,7 +35,8 @@ class VehicleController extends Controller
      */
     public function create()
     {
-        return view('admin-views.vehicle.index');
+        $existing_vehicles = Vehicle::all(['id', 'type', 'starting_coverage_area', 'maximum_coverage_area']);
+        return view('admin-views.vehicle.index', compact('existing_vehicles'));
     }
 
     /**
@@ -65,8 +66,6 @@ class VehicleController extends Controller
         $starting_coverage_area= $request->starting_coverage_area;
         $maximum_coverage_area= $request->maximum_coverage_area ;
 
-        // Coverage area overlap check bypassed to allow multiple vehicle types in same distance range
-        /*
         $temp = Vehicle::where(function ($query) use ($starting_coverage_area) {
             $query->where('starting_coverage_area', '<=', $starting_coverage_area)->where('maximum_coverage_area', '>=', $starting_coverage_area);
         })->orWhere(function ($query) use ($maximum_coverage_area) {
@@ -77,11 +76,11 @@ class VehicleController extends Controller
         ->first();
 
         if (isset($temp)) {
+            $msg = translate('messages.Coverage_area_overlapped') . ": (" . $starting_coverage_area . " - " . $maximum_coverage_area . " km) overlaps with existing vehicle '" . $temp->type . "' (" . $temp->starting_coverage_area . " - " . $temp->maximum_coverage_area . " km). Vehicle coverage ranges must not overlap.";
             return response()->json(['errors' => [
-                ['code' => 'Vehicle_overlaped', 'message' => translate('messages.Coverage_area_overlapped')]
+                ['code' => 'Vehicle_overlaped', 'message' => $msg]
             ]]);
         }
-        */
 
         $vehicle = new Vehicle();
         $vehicle->type = $request->type[array_search('default', $request->lang)];
@@ -173,7 +172,8 @@ class VehicleController extends Controller
     public function edit($vehicle)
     {
         $vehicle = Vehicle::withoutGlobalScope('translate')->with('translations')->findOrFail($vehicle);
-        return view('admin-views.vehicle.edit', compact('vehicle') );
+        $existing_vehicles = Vehicle::where('id', '!=', $vehicle->id)->get(['id', 'type', 'starting_coverage_area', 'maximum_coverage_area']);
+        return view('admin-views.vehicle.edit', compact('vehicle', 'existing_vehicles') );
     }
 
     /**
@@ -203,8 +203,6 @@ class VehicleController extends Controller
         $starting_coverage_area= $request->starting_coverage_area;
         $maximum_coverage_area= $request->maximum_coverage_area;
 
-        // Coverage area overlap check bypassed to allow multiple vehicle types in same distance range
-        /*
         $temp = Vehicle::where('id' ,'!=', $vehicle->id)->where(function ($q) use ($starting_coverage_area,$maximum_coverage_area ){
             $q->where(function ($query) use ($starting_coverage_area) {
                 $query->where('starting_coverage_area', '<=', $starting_coverage_area)->where('maximum_coverage_area', '>=', $starting_coverage_area);
@@ -216,11 +214,11 @@ class VehicleController extends Controller
         })
         ->first();
         if (isset($temp)) {
+            $msg = translate('messages.Coverage_area_overlapped') . ": (" . $starting_coverage_area . " - " . $maximum_coverage_area . " km) overlaps with existing vehicle '" . $temp->type . "' (" . $temp->starting_coverage_area . " - " . $temp->maximum_coverage_area . " km). Vehicle coverage ranges must not overlap.";
             return response()->json(['errors' => [
-            ['code' => 'Vehicle_overlaped', 'message' => translate('messages.Coverage_area_overlapped')]
+                ['code' => 'Vehicle_overlaped', 'message' => $msg]
             ]]);
         }
-        */
 
         $vehicle->type = $request->type[array_search('default', $request->lang)];
         $vehicle->extra_charges = $request->extra_charges;
