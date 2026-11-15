@@ -172,6 +172,11 @@ class AutoCancelUnacceptedOrders extends Command
             $refunded = false;
             $refundAmount = (float) $order->order_amount;
 
+            if ($order->payment_method == 'partial_payment') {
+                $refundAmount = (float) ($order->partially_paid_amount ?? 0);
+                $isPaidOnlineOrWallet = ($refundAmount > 0);
+            }
+
             if (!$isCod && $isPaidOnlineOrWallet && $refundAmount > 0 && $order->user_id && $order->is_guest == 0) {
                 CustomerLogic::create_wallet_transaction(
                     user_id: $order->user_id,
