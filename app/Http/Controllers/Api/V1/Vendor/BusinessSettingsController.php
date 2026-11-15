@@ -77,86 +77,96 @@ class BusinessSettingsController extends Controller
         $home_delivery = BusinessSetting::where('key', 'home_delivery')->first()?->value ?? null;
         if ($request->delivery   && !$home_delivery) {
             return response()->json([
-                'error'=>[
+                'errors'=>[
                     ['code'=>'delivery_or_take_way', 'message'=>translate('messages.Home_delivery_is_disabled_by_admin')]
-                ]
-            ],403);
+                ],
+                'message'=>translate('messages.Home_delivery_is_disabled_by_admin')
+            ],400);
         }
         $take_away = BusinessSetting::where('key', 'take_away')->first()?->value ?? null;
         if ($request->take_away && !$take_away) {
             return response()->json([
-                'error'=>[
+                'errors'=>[
                     ['code'=>'delivery_or_take_way', 'message'=>translate('messages.Take_away_is_disabled_by_admin')]
-                ]
-            ],403);
+                ],
+                'message'=>translate('messages.Take_away_is_disabled_by_admin')
+            ],400);
         }
 
         $instant_order = BusinessSetting::where('key', 'instant_order')->first()?->value ?? null;
 
         if ($request->instant_order && !$instant_order) {
             return response()->json([
-                'error'=>[
+                'errors'=>[
                     ['code'=>'instant_order', 'message'=>translate('messages.instant_order_is_disabled_by_admin')]
-                ]
-            ],403);
+                ],
+                'message'=>translate('messages.instant_order_is_disabled_by_admin')
+            ],400);
         }
 
 
         $dine_in_order_option = BusinessSetting::where('key', 'dine_in_order_option')->first()?->value ?? null;
         if ($request->is_dine_in_active && !$dine_in_order_option) {
             return response()->json([
-                'error'=>[
+                'errors'=>[
                     ['code'=>'dine_in', 'message'=>translate('messages.dine_in_order_option_is_disabled_by_admin')]
-                ]
-            ],403);
+                ],
+                'message'=>translate('messages.dine_in_order_option_is_disabled_by_admin')
+            ],400);
         }
 
-        if ($request->schedule_advance_dine_in_booking_duration_time_format == 'min' &&   $request->schedule_advance_dine_in_booking_duration > 60) {
+        if ($request->schedule_advance_dine_in_booking_duration_time_format == 'min' && $request->schedule_advance_dine_in_booking_duration > 1440) {
             return response()->json([
-                'error'=>[
-                    ['code'=>'dine_in', 'message'=>translate('messages.Dine_in_dine_in_booking_duration_time_must_be_in_60_minute')]
-                ]
-            ],403);
+                'errors'=>[
+                    ['code'=>'dine_in', 'message'=>translate('messages.Dine_in_booking_duration_time_must_be_within_1440_minute')]
+                ],
+                'message'=>translate('messages.Dine_in_booking_duration_time_must_be_within_1440_minute')
+            ],400);
         }
-        elseif ($request->schedule_advance_dine_in_booking_duration_time_format == 'hour' &&   $request->schedule_advance_dine_in_booking_duration > 24) {
+        elseif ($request->schedule_advance_dine_in_booking_duration_time_format == 'hour' && $request->schedule_advance_dine_in_booking_duration > 24) {
             return response()->json([
-                'error'=>[
+                'errors'=>[
                     ['code'=>'dine_in', 'message'=>translate('messages.Dine_in_dine_in_booking_duration_time_must_be_in_24_hour')]
-                ]
-            ],403);
+                ],
+                'message'=>translate('messages.Dine_in_dine_in_booking_duration_time_must_be_in_24_hour')
+            ],400);
         }
-        elseif ($request->schedule_advance_dine_in_booking_duration_time_format == 'day' &&   $request->schedule_advance_dine_in_booking_duration > 365) {
+        elseif ($request->schedule_advance_dine_in_booking_duration_time_format == 'day' && $request->schedule_advance_dine_in_booking_duration > 365) {
             return response()->json([
-                'error'=>[
+                'errors'=>[
                     ['code'=>'dine_in', 'message'=>translate('messages.Dine_in_dine_in_booking_duration_time_must_be_in_356_days')]
-                ]
-            ],403);
+                ],
+                'message'=>translate('messages.Dine_in_dine_in_booking_duration_time_must_be_in_356_days')
+            ],400);
         }
 
         if(!$request->take_away && !$request->delivery)
         {
             return response()->json([
-                'error'=>[
+                'errors'=>[
                     ['code'=>'delivery_or_take_way', 'message'=>translate('messages.can_not_disable_both_take_away_and_delivery')]
-                ]
-            ],403);
+                ],
+                'message'=>translate('messages.can_not_disable_both_take_away_and_delivery')
+            ],400);
         }
 
         if(!$request->veg && !$request->non_veg)
         {
             return response()->json([
-                'error'=>[
+                'errors'=>[
                     ['code'=>'veg_non_veg', 'message'=>translate('messages.veg_non_veg_disable_warning')]
-                ]
-            ],403);
+                ],
+                'message'=>translate('messages.veg_non_veg_disable_warning')
+            ],400);
         }
         if(!$request->instant_order && $instant_order && !$request->schedule_order)
         {
             return response()->json([
-                'error'=>[
+                'errors'=>[
                     ['code'=>'order', 'message'=>translate('messages.can_not_disable_both_instant_order_and_schedule_order')]
-                ]
-            ],403);
+                ],
+                'message'=>translate('messages.can_not_disable_both_instant_order_and_schedule_order')
+            ],400);
         }
 
 
@@ -327,9 +337,10 @@ class BusinessSettingsController extends Controller
         if(!$schedule)
         {
             return response()->json([
-                'error'=>[
-                    ['code'=>'not-fond', 'message'=>translate('messages.Schedule not found')]
-                ]
+                'errors'=>[
+                    ['code'=>'not-found', 'message'=>translate('messages.Schedule not found')]
+                ],
+                'message' => translate('messages.Schedule not found')
             ],404);
         }
         $schedule->delete();
