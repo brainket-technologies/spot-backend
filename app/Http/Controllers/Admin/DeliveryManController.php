@@ -696,7 +696,8 @@ class DeliveryManController extends Controller
 
     public function get_incentives(Request $request)
     {
-        $incentives = IncentiveLog::when($request->search, function ($query) use ($request) {
+        $incentives = IncentiveLog::with(['deliveryman', 'zone'])
+            ->when($request->search, function ($query) use ($request) {
             $key = explode(' ', $request->search);
             $query->whereHas('deliveryman', function ($query) use ($key) {
                 $query->where(function ($q) use ($key) {
@@ -715,8 +716,8 @@ class DeliveryManController extends Controller
     }
     public function pending_incentives(Request $request)
     {
-        $incentives = IncentiveLog::
-        when($request->search, function ($query) use ($request) {
+        $incentives = IncentiveLog::with(['deliveryman', 'zone'])
+            ->when($request->search, function ($query) use ($request) {
             $key = explode(' ', $request->search);
             $query->whereHas('deliveryman', function ($query) use ($key) {
                 $query->where(function ($q) use ($key) {

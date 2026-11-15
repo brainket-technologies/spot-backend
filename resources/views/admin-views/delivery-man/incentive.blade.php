@@ -77,7 +77,7 @@
                                     @endif
                                 </td>
 
-                                <td>{{$incentive->zone->name}}</td>
+                                <td>{{$incentive->zone?->name ?? translate('messages.not_found')}}</td>
                                 <td>{{\App\CentralLogics\Helpers::format_currency($incentive->today_earning)}}</td>
                                 <td>{{\App\CentralLogics\Helpers::format_currency($incentive->incentive)}}</td>
                                 <td>{{ $incentive->date }}</td>
