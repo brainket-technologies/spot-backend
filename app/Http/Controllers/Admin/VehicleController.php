@@ -65,6 +65,8 @@ class VehicleController extends Controller
         $starting_coverage_area= $request->starting_coverage_area;
         $maximum_coverage_area= $request->maximum_coverage_area ;
 
+        // Coverage area overlap check bypassed to allow multiple vehicle types in same distance range
+        /*
         $temp = Vehicle::where(function ($query) use ($starting_coverage_area) {
             $query->where('starting_coverage_area', '<=', $starting_coverage_area)->where('maximum_coverage_area', '>=', $starting_coverage_area);
         })->orWhere(function ($query) use ($maximum_coverage_area) {
@@ -79,6 +81,7 @@ class VehicleController extends Controller
                 ['code' => 'Vehicle_overlaped', 'message' => translate('messages.Coverage_area_overlapped')]
             ]]);
         }
+        */
 
         $vehicle = new Vehicle();
         $vehicle->type = $request->type[array_search('default', $request->lang)];
@@ -200,6 +203,8 @@ class VehicleController extends Controller
         $starting_coverage_area= $request->starting_coverage_area;
         $maximum_coverage_area= $request->maximum_coverage_area;
 
+        // Coverage area overlap check bypassed to allow multiple vehicle types in same distance range
+        /*
         $temp = Vehicle::where('id' ,'!=', $vehicle->id)->where(function ($q) use ($starting_coverage_area,$maximum_coverage_area ){
             $q->where(function ($query) use ($starting_coverage_area) {
                 $query->where('starting_coverage_area', '<=', $starting_coverage_area)->where('maximum_coverage_area', '>=', $starting_coverage_area);
@@ -215,6 +220,7 @@ class VehicleController extends Controller
             ['code' => 'Vehicle_overlaped', 'message' => translate('messages.Coverage_area_overlapped')]
             ]]);
         }
+        */
 
         $vehicle->type = $request->type[array_search('default', $request->lang)];
         $vehicle->extra_charges = $request->extra_charges;
