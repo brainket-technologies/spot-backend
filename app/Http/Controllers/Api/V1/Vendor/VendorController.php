@@ -693,13 +693,16 @@ class VendorController extends Controller
     {
         $limit = $request->limit ? $request->limit : 25;
         $offset = $request->offset ? $request->offset : 1;
-        $category_id = $request->category_id ? $request->category_id : 0;
+        $category_id = 0;
+        if ($request->filled('category_id') && is_numeric($request->category_id)) {
+            $category_id = (int)$request->category_id;
+        }
 
         $type = $request->query('type', 'all');
         $stock = $request->query('stock', 'all');
 
         $paginator = Food::type($type);
-        if ($category_id != 0) {
+        if ($category_id > 0) {
             $paginator = $paginator->whereHas('category', function ($q) use ($category_id) {
                 return $q->whereId($category_id)->orWhere('parent_id', $category_id);
             });
