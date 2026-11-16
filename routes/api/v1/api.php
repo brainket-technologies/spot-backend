@@ -248,6 +248,13 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             Route::get('customers', 'POSController@get_customers');
         });
 
+        // Categories
+        Route::group(['prefix' => 'categories'], function () {
+            Route::get('/', 'CategoryController@get_categories');
+            Route::get('childes/{parent_id}', 'CategoryController@get_childes');
+            Route::get('category-wise-products', 'CategoryController@get_category_wise_products');
+        });
+
         // Chatting
         Route::group(['prefix' => 'message'], function () {
             Route::get('list', 'ConversationController@conversations');
