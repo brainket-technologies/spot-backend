@@ -52,6 +52,9 @@ class AddOnController extends Controller
         $addon->restaurant_id = $vendor?->restaurants[0]?->id;
         $addon->stock_type = $request->stock_type ?? 'unlimited';
         $addon->addon_stock = $request->stock_type != 'unlimited' ?  $request->addon_stock : 0;
+        if ($request->filled('addon_category_id') && \Illuminate\Support\Facades\Schema::hasColumn('add_ons', 'addon_category_id')) {
+            $addon->addon_category_id = $request->addon_category_id;
+        }
         $addon->save();
 
         foreach ($data as $key=>$item) {
@@ -102,6 +105,9 @@ class AddOnController extends Controller
         $addon->stock_type = $request->stock_type ?? 'unlimited';
         $addon->addon_stock = $request->stock_type != 'unlimited' ?  $request->addon_stock : 0;
         $addon->sell_count = 0;
+        if ($request->filled('addon_category_id') && \Illuminate\Support\Facades\Schema::hasColumn('add_ons', 'addon_category_id')) {
+            $addon->addon_category_id = $request->addon_category_id;
+        }
         $addon?->save();
 
         foreach ($data as $key=>$item) {

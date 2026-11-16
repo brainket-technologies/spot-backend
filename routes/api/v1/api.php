@@ -255,6 +255,15 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             Route::get('category-wise-products', 'CategoryController@get_category_wise_products');
         });
 
+        // Addon Categories & Tax
+        Route::group(['prefix' => 'addon-category'], function () {
+            Route::get('/', 'CategoryController@get_addon_categories');
+            Route::get('list', 'CategoryController@get_addon_categories');
+        });
+        Route::group(['prefix' => 'taxvat'], function () {
+            Route::get('get-taxVat-list', 'CategoryController@get_taxvat_list');
+        });
+
         // Chatting
         Route::group(['prefix' => 'message'], function () {
             Route::get('list', 'ConversationController@conversations');
@@ -328,6 +337,15 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
         Route::get('products/{category_id}', 'CategoryController@get_products');   // visitor logs
         Route::get('products/{category_id}/all', 'CategoryController@get_all_products');
         Route::get('restaurants/{category_id}', 'CategoryController@get_restaurants');
+    });
+
+    Route::group(['prefix' => 'addon-category'], function () {
+        Route::get('/', 'CategoryController@get_addon_categories');
+        Route::get('list', 'CategoryController@get_addon_categories');
+    });
+
+    Route::group(['prefix' => 'taxvat'], function () {
+        Route::get('get-taxVat-list', 'CategoryController@get_taxvat_list');
     });
 
     Route::group(['prefix' => 'cuisine'], function () {

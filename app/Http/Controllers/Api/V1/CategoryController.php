@@ -207,4 +207,32 @@ class CategoryController extends Controller
             return response()->json([], 200);
         }
     }
+
+    public function get_addon_categories(Request $request)
+    {
+        try {
+            $categories = Category::where(['position' => 0, 'status' => 1])
+                ->with('translations')
+                ->orderBy('name')
+                ->get();
+
+            $data = [];
+            foreach ($categories as $category) {
+                $data[] = [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'translations' => $category->translations,
+                ];
+            }
+
+            return response()->json($data, 200);
+        } catch (\Exception $e) {
+            return response()->json([], 200);
+        }
+    }
+
+    public function get_taxvat_list(Request $request)
+    {
+        return response()->json([], 200);
+    }
 }

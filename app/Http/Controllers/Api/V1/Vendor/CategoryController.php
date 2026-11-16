@@ -125,4 +125,38 @@ class CategoryController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get addon categories list for vendor
+     */
+    public function get_addon_categories(Request $request)
+    {
+        try {
+            $categories = Category::where(['position' => 0, 'status' => 1])
+                ->with('translations')
+                ->orderBy('name')
+                ->get();
+
+            $data = [];
+            foreach ($categories as $category) {
+                $data[] = [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'translations' => $category->translations,
+                ];
+            }
+
+            return response()->json($data, 200);
+        } catch (\Exception $e) {
+            return response()->json([], 200);
+        }
+    }
+
+    /**
+     * Get tax / VAT list
+     */
+    public function get_taxvat_list(Request $request)
+    {
+        return response()->json([], 200);
+    }
 }
