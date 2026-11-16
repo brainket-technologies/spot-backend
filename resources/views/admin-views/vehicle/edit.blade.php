@@ -104,31 +104,16 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label class="input-label text-capitalize" for="title">{{translate('messages.starting_coverage_area')}} ({{ translate('messages.km') }})<span class="input-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{translate('messages.This_value_is_the_minimum_distance_for_a_vehicle_in_this_category_to_serve_an_order.')}} {{translate('Note: Coverage area range must NOT overlap with any other vehicle category.')}}"><img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="public/img"></span></label>
+                                        <label class="input-label text-capitalize" for="title">{{translate('messages.starting_coverage_area')}} ({{ translate('messages.km') }})<span class="input-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{translate('messages.This_value_is_the_minimum_distance_for_a_vehicle_in_this_category_to_serve_an_order.')}}"><img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="public/img"></span></label>
                                         <input type="number"step="0.001" id="starting_coverage_area" class="form-control h--45px" value="{{ $vehicle->starting_coverage_area }}"  min="0" required name="starting_coverage_area">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label class="input-label text-capitalize" for="title">{{translate('messages.maximum_coverage_area')}} ({{ translate('messages.km') }})<span class="input-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{translate('messages.This_value_is_the_maximum_distance_for_a_vehicle_in_this_category_to_serve_an_order')}} {{translate('Note: Coverage area range must NOT overlap with any other vehicle category.')}}"><img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="public/img"></span></label>
+                                        <label class="input-label text-capitalize" for="title">{{translate('messages.maximum_coverage_area')}} ({{ translate('messages.km') }})<span class="input-label-secondary" data-toggle="tooltip" data-placement="right" data-original-title="{{translate('messages.This_value_is_the_maximum_distance_for_a_vehicle_in_this_category_to_serve_an_order')}}"><img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="public/img"></span></label>
                                         <input type="number" step="0.001" id="maximum_coverage_area" class="form-control h--45px" value="{{ $vehicle->maximum_coverage_area }}" min="0"  required name="maximum_coverage_area">
                                     </div>
                                 </div>
-
-                                @if(isset($existing_vehicles) && $existing_vehicles->count() > 0)
-                                    <div class="col-md-12 mt-2">
-                                        <div class="alert alert-soft-info d-flex align-items-center mb-0" role="alert">
-                                            <i class="tio-info mr-2"></i>
-                                            <div>
-                                                <strong>{{ translate('messages.Note') }}:</strong> {{ translate('Coverage area range cannot overlap with other vehicles. Other configured ranges') }}:
-                                                @foreach($existing_vehicles as $ev)
-                                                    <span class="badge badge-info mr-1" style="font-size: 13px;">{{ $ev->type }}: {{ $ev->starting_coverage_area }} - {{ $ev->maximum_coverage_area }} km</span>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endif
-
                             </div>
                         </div>
                     </div>

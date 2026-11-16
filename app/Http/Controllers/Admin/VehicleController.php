@@ -63,33 +63,6 @@ class VehicleController extends Controller
             return response()->json(['errors' => Helpers::error_processor($validator)]);
         }
 
-        $starting_coverage_area = (float) $request->starting_coverage_area;
-        $maximum_coverage_area = (float) $request->maximum_coverage_area;
-
-        $conflicts = Vehicle::where(function ($query) use ($starting_coverage_area) {
-            $query->where('starting_coverage_area', '<=', $starting_coverage_area)->where('maximum_coverage_area', '>=', $starting_coverage_area);
-        })->orWhere(function ($query) use ($maximum_coverage_area) {
-            $query->where('starting_coverage_area', '<=', $maximum_coverage_area)->where('maximum_coverage_area', '>=', $maximum_coverage_area);
-        })->orWhere(function ($query) use ($starting_coverage_area,$maximum_coverage_area) {
-            $query->where('starting_coverage_area', '>=', $starting_coverage_area)->where('maximum_coverage_area', '<=', $maximum_coverage_area);
-        })
-        ->get();
-
-        if ($conflicts->count() > 0) {
-            $conflict_names = $conflicts->map(function ($v) {
-                return $v->type . ' (' . $v->starting_coverage_area . ' - ' . $v->maximum_coverage_area . ' km)';
-            })->implode(', ');
-
-            $max_coverage = Vehicle::max('maximum_coverage_area');
-            $suggested_start = $max_coverage ? round($max_coverage + 0.1, 1) : 0.1;
-
-            $msg = "Coverage Area Conflict: Range ({$starting_coverage_area} - {$maximum_coverage_area} km) overlaps with {$conflict_names}. Next available starting range is {$suggested_start} km.";
-
-            return response()->json(['errors' => [
-                ['code' => 'Vehicle_overlaped', 'message' => $msg]
-            ]]);
-        }
-
         $vehicle = new Vehicle();
         $vehicle->type = $request->type[array_search('default', $request->lang)];
         $vehicle->status = 1;
@@ -207,34 +180,6 @@ class VehicleController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)]);
-        }
-        $starting_coverage_area = (float) $request->starting_coverage_area;
-        $maximum_coverage_area = (float) $request->maximum_coverage_area;
-
-        $conflicts = Vehicle::where('id' ,'!=', $vehicle->id)->where(function ($q) use ($starting_coverage_area,$maximum_coverage_area ){
-            $q->where(function ($query) use ($starting_coverage_area) {
-                $query->where('starting_coverage_area', '<=', $starting_coverage_area)->where('maximum_coverage_area', '>=', $starting_coverage_area);
-            })->orWhere(function ($query) use ($maximum_coverage_area) {
-                $query->where('starting_coverage_area', '<=', $maximum_coverage_area)->where('maximum_coverage_area', '>=', $maximum_coverage_area);
-            })->orWhere(function ($query) use ($starting_coverage_area, $maximum_coverage_area) {
-                $query->where('starting_coverage_area', '>=', $starting_coverage_area)->where('maximum_coverage_area', '<=', $maximum_coverage_area);
-            });
-        })
-        ->get();
-
-        if ($conflicts->count() > 0) {
-            $conflict_names = $conflicts->map(function ($v) {
-                return $v->type . ' (' . $v->starting_coverage_area . ' - ' . $v->maximum_coverage_area . ' km)';
-            })->implode(', ');
-
-            $max_coverage = Vehicle::where('id', '!=', $vehicle->id)->max('maximum_coverage_area');
-            $suggested_start = $max_coverage ? round($max_coverage + 0.1, 1) : 0.1;
-
-            $msg = "Coverage Area Conflict: Range ({$starting_coverage_area} - {$maximum_coverage_area} km) overlaps with {$conflict_names}. Next available starting range is {$suggested_start} km.";
-
-            return response()->json(['errors' => [
-                ['code' => 'Vehicle_overlaped', 'message' => $msg]
-            ]]);
         }
 
         $vehicle->type = $request->type[array_search('default', $request->lang)];
