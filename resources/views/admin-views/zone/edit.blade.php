@@ -154,7 +154,7 @@
 @endsection
 
 @push('script_2')
-<script src="https://maps.googleapis.com/maps/api/js?v=3.45.8&key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=drawing,places"></script>
+<script src="https://maps.googleapis.com/maps/api/js?v=3.64&key={{ \App\Models\BusinessSetting::where('key', 'map_api_key')->first()->value }}&libraries=drawing,places"></script>
 <script>
     "use strict";
     auto_grow();
@@ -325,7 +325,11 @@
                 map.fitBounds(bounds);
             });
     }
-    google.maps.event.addDomListener(window, 'load', initialize);
+    if (document.readyState === 'complete') {
+        initialize();
+    } else {
+        window.addEventListener('load', initialize);
+    }
 
     function set_all_zones()
     {
